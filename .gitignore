@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+
+# Android
+.gradle/
+build/
+local.properties
+
+# Env
+.env
+
+# OS
+.DS_Store
+Thumbs.db
