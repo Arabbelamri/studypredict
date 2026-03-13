@@ -1,34 +1,69 @@
 # StudyPredict
 
-Mobile DevOps Project - Le Mans University
+Projet Mobile DevOps – Université du Mans
 
 ## Description
 
-StudyPredict is an Android application that helps students estimate their probability of academic success using a Machine Learning model.
+StudyPredict est une application Android qui aide les étudiants à estimer leur probabilité de réussite académique à partir de leurs habitudes de travail.
+
+L'application collecte plusieurs informations comme :
+
+- le nombre d’heures d’étude par semaine  
+- le taux de présence en cours  
+- le nombre d’exercices réalisés  
+- les heures de sommeil  
+- le niveau de concentration  
+
+Ces données sont utilisées pour calculer un *score de réussite* et proposer des *conseils personnalisés* afin d'aider l'étudiant à améliorer ses performances académiques.
+
+Ce projet est réalisé dans le cadre du *module Mobile DevOps à l’Université du Mans*.
 
 ## Architecture
 
-- Android mobile application
-- REST API backend
-- Machine Learning prediction service
+Le projet est composé de trois parties principales :
 
-## Team
+- *Application mobile Android*  
+  Développée en Kotlin. Elle permet l’interaction avec l’utilisateur et l’affichage des résultats.
 
-- Arab Belamri
-- Armindo Ephraim
-- Ribel Bakhouche
+- *API REST (Backend)*  
+  Développée en Python avec FastAPI. Elle gère les requêtes de prédiction et communique avec le modèle de Machine Learning.
 
-## Tech Stack
+- *Service de prédiction Machine Learning*  
+  Un modèle entraîné permettant d'estimer la probabilité de réussite académique à partir des données fournies par l'utilisateur.
 
-Frontend:
-- Android (Kotlin)
+## Fonctionnalités
 
-Backend:
-- Python / FastAPI
+- Estimation du potentiel de réussite académique
+- Affichage d’un score et d’une note globale
+- Conseils personnalisés pour améliorer ses habitudes d’étude
+- Historique des analyses
+- Système de badges
+- Rappels de travail
+- Notes et mémos
+- Recherche de bibliothèques proches (OpenStreetMap)
 
-Machine Learning:
-- AutoML (semester 1 model)
+## Technologies utilisées
 
-DevOps:
+### Frontend
+- Kotlin
+- Android Studio
+- Jetpack Compose
+- OSMDroid (carte)
+
+### Backend
+- Python
+- FastAPI
+
+### Machine Learning
+- AutoML (modèle entraîné au semestre 1)
+
+### DevOps
 - Git
 - Docker
+
+## Installation
+
+Cloner le projet :
+
+```bash
+git clone https://github.com/Arabbelamri/studypredict.git
