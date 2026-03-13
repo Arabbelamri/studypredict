@@ -1,0 +1,17 @@
+package com.example.studypredict.navigation
+
+object Routes {
+    const val HOME = "home"
+    const val STEP1 = "step1"
+    const val STEP2 = "step2"
+    const val STEP3 = "step3"
+    const val STEP4 = "step4"
+    const val STEP5 = "step5"
+    const val RESULT = "result"
+    const val BADGES = "badges"
+    const val HISTORY = "history"
+    const val LIBRARIES = "libraries"
+    const val TIPS = "tips"
+    const val REMINDERS = "reminders"
+    const val NOTES = "notes"
+}
