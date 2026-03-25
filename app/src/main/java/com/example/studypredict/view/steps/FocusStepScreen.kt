@@ -1,4 +1,4 @@
-package com.example.studypredict.view.steps
+﻿package com.example.studypredict.view.steps
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -7,11 +7,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Psychology
@@ -43,6 +43,7 @@ import kotlin.math.roundToInt
 fun FocusStepScreen(
     stepIndex: Int,
     totalSteps: Int,
+    isSubmitting: Boolean,
     onBack: () -> Unit,
     onSeeResult: (Int) -> Unit,
 ) {
@@ -51,8 +52,6 @@ fun FocusStepScreen(
     val percent = (stepIndex.toFloat() / totalSteps.toFloat()).coerceIn(0f, 1f)
 
     var focus by remember { mutableFloatStateOf(7f) }
-    val minV = 1f
-    val maxV = 10f
 
     Scaffold(
         containerColor = bg,
@@ -67,18 +66,20 @@ fun FocusStepScreen(
             ) {
                 OutlinedButton(
                     onClick = onBack,
+                    enabled = !isSubmitting,
                     modifier = Modifier
                         .weight(1.3f)
                         .height(58.dp),
                     shape = RoundedCornerShape(18.dp),
                 ) {
-                    Text("←", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Text("<-", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.size(10.dp))
                     Text("Retour", fontWeight = FontWeight.SemiBold)
                 }
 
                 Button(
                     onClick = { onSeeResult(focus.roundToInt()) },
+                    enabled = !isSubmitting,
                     modifier = Modifier
                         .weight(1.7f)
                         .height(58.dp),
@@ -88,9 +89,13 @@ fun FocusStepScreen(
                         contentColor = Color.White
                     )
                 ) {
-                    Text("Voir le résultat", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text(
+                        text = if (isSubmitting) "Chargement..." else "Voir le resultat",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp
+                    )
                     Spacer(Modifier.size(10.dp))
-                    Text("✨", fontSize = 18.sp)
+                    Text("*", fontSize = 18.sp)
                 }
             }
         }
@@ -110,7 +115,7 @@ fun FocusStepScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Étape $stepIndex sur $totalSteps",
+                    text = "Etape $stepIndex sur $totalSteps",
                     color = Color(0xFF111827),
                     fontWeight = FontWeight.SemiBold
                 )
@@ -164,7 +169,7 @@ fun FocusStepScreen(
             Spacer(Modifier.height(10.dp))
 
             Text(
-                text = "Comment évaluez-vous votre concentration ?",
+                text = "Comment evaluez-vous votre concentration ?",
                 fontSize = 16.sp,
                 color = Color(0xFF6B7280)
             )
@@ -209,7 +214,7 @@ fun FocusStepScreen(
                     Slider(
                         value = focus,
                         onValueChange = { focus = it },
-                        valueRange = minV..maxV,
+                        valueRange = 1f..10f,
                         steps = 8
                     )
 

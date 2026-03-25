@@ -1,6 +1,9 @@
 package com.example.studypredict.navigation
 
 object Routes {
+    const val AUTH_LOGIN = "auth_login"
+    const val AUTH_SIGNUP = "auth_signup"
+    const val PROFILE = "profile"
     const val HOME = "home"
     const val STEP1 = "step1"
     const val STEP2 = "step2"

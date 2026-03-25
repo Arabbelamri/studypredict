@@ -1,4 +1,4 @@
-package com.example.studypredict.view.home
+﻿package com.example.studypredict.view.home
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -10,8 +10,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -21,10 +21,12 @@ import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.NotificationsActive
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.School
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -39,14 +41,15 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.tooling.preview.Preview
 import com.example.studypredict.ui.theme.TrainingTheme
 
 @Composable
 fun StudyPredictHomeScreen(
+    isLoggedIn: Boolean,
     onStartAnalysis: () -> Unit,
     onPrediction: () -> Unit,
     onBadges: () -> Unit,
@@ -54,7 +57,13 @@ fun StudyPredictHomeScreen(
     onHistory: () -> Unit,
     onReminders: () -> Unit,
     onNotes: () -> Unit,
+    onLogin: () -> Unit,
+    onProfile: () -> Unit,
 ) {
+    fun runOrAskAuth(action: () -> Unit) {
+        if (isLoggedIn) action() else onLogin()
+    }
+
     val screenBg = Color(0xFFF2F6FF)
     val cardBg = Color(0xFFF7FAFF)
 
@@ -75,8 +84,30 @@ fun StudyPredictHomeScreen(
                 .padding(innerPadding)
                 .padding(horizontal = 22.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.Top
         ) {
+            Spacer(Modifier.height(10.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                Surface(
+                    shape = CircleShape,
+                    color = Color.White,
+                    modifier = Modifier
+                        .shadow(6.dp, CircleShape)
+                ) {
+                    IconButton(onClick = { if (isLoggedIn) onProfile() else onLogin() }) {
+                        Icon(
+                            imageVector = Icons.Outlined.Person,
+                            contentDescription = "Profil",
+                            tint = Color(0xFF4B3CFF)
+                        )
+                    }
+                }
+            }
+
             Spacer(Modifier.height(28.dp))
 
             Box(
@@ -107,7 +138,7 @@ fun StudyPredictHomeScreen(
             Spacer(Modifier.height(10.dp))
 
             Text(
-                text = "Découvrez votre potentiel académique",
+                text = "Decouvrez votre potentiel academique",
                 color = Color(0xFF6B7280),
                 fontSize = 16.sp,
                 textAlign = TextAlign.Center
@@ -123,9 +154,9 @@ fun StudyPredictHomeScreen(
                     modifier = Modifier.weight(1f),
                     icon = Icons.Outlined.LocationOn,
                     iconTint = Color(0xFF5B55FF),
-                    title = "Réviser\nprès de moi",
+                    title = "Reviser\npres de moi",
                     background = cardBg,
-                    onClick = onPrediction
+                    onClick = { runOrAskAuth(onPrediction) }
                 )
                 FeatureCard(
                     modifier = Modifier.weight(1f),
@@ -133,7 +164,7 @@ fun StudyPredictHomeScreen(
                     iconTint = Color(0xFFF59E0B),
                     title = "Badges",
                     background = cardBg,
-                    onClick = onBadges
+                    onClick = { runOrAskAuth(onBadges) }
                 )
                 FeatureCard(
                     modifier = Modifier.weight(1f),
@@ -141,7 +172,7 @@ fun StudyPredictHomeScreen(
                     iconTint = Color(0xFF8B5CF6),
                     title = "Conseils",
                     background = cardBg,
-                    onClick = onTips
+                    onClick = { runOrAskAuth(onTips) }
                 )
             }
 
@@ -157,7 +188,7 @@ fun StudyPredictHomeScreen(
                     iconTint = Color(0xFF3B82F6),
                     title = "Rappels",
                     background = cardBg,
-                    onClick = onReminders
+                    onClick = { runOrAskAuth(onReminders) }
                 )
                 FeatureCard(
                     modifier = Modifier.weight(1f),
@@ -165,7 +196,7 @@ fun StudyPredictHomeScreen(
                     iconTint = Color(0xFF10B981),
                     title = "Notes",
                     background = cardBg,
-                    onClick = onNotes
+                    onClick = { runOrAskAuth(onNotes) }
                 )
                 FeatureCard(
                     modifier = Modifier.weight(1f),
@@ -173,7 +204,7 @@ fun StudyPredictHomeScreen(
                     iconTint = Color(0xFF6B7280),
                     title = "Historique",
                     background = cardBg,
-                    onClick = onHistory
+                    onClick = { runOrAskAuth(onHistory) }
                 )
             }
 
@@ -182,7 +213,7 @@ fun StudyPredictHomeScreen(
             GradientButton(
                 text = "Commencer l'analyse",
                 brush = primaryGrad,
-                onClick = onStartAnalysis,
+                onClick = { runOrAskAuth(onStartAnalysis) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp)
@@ -191,7 +222,7 @@ fun StudyPredictHomeScreen(
             Spacer(Modifier.height(18.dp))
 
             Text(
-                text = "Analyse basée sur 5 critères essentiels",
+                text = "Analyse basee sur 5 criteres essentiels",
                 color = Color(0xFF8A93A3),
                 fontSize = 13.sp,
                 textAlign = TextAlign.Center
@@ -303,13 +334,16 @@ private fun GradientText(
 private fun PreviewStudyPredictHome() {
     TrainingTheme {
         StudyPredictHomeScreen(
+            isLoggedIn = false,
             onStartAnalysis = {},
             onPrediction = {},
             onBadges = {},
             onTips = {},
             onHistory = {},
             onReminders = {},
-            onNotes = {}
+            onNotes = {},
+            onLogin = {},
+            onProfile = {}
         )
     }
 }

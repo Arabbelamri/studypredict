@@ -1,31 +1,40 @@
-# Python
-__pycache__/
-*.pyc
-
-# Android
-.gradle/
-build/
-local.properties
-
-# Env
-.env
-
 # OS
 .DS_Store
 Thumbs.db
-=======
+
+# IDE
+.idea/
+app/.idea/
 *.iml
-.gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-.DS_Store
-/build
+
+# Android / Gradle
+.gradle/
+.gradle-local/
+build/
+**/build/
 /captures
-.externalNativeBuild
-.cxx
+.externalNativeBuild/
+.cxx/
 local.properties
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Local databases
+*.db
+*.sqlite
+*.sqlite3
+
+# ML artifacts and datasets (generated/local)
+ml/*.pkl
+ml/*.data
+ml/*.solution

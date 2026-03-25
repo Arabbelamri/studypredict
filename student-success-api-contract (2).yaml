@@ -1,0 +1,441 @@
+openapi: 3.0.3
+info:
+  title: Student Success Predictor API
+  version: 1.0.0
+  description: >
+    API avec authentification JWT (login) et prédiction ML d'un pourcentage de réussite.
+  # Custom fields (vendor extensions) for multiple contributors
+  x-team:
+    - name: "Bakhouche Ribel"
+    - name: "Belamri Arab" 
+    - name: "ARMINDO EPHRAÏM"
+
+
+servers:
+  - url: http://localhost:8080
+    description: Local dev
+
+tags:
+  - name: Auth
+  - name: Users
+  - name: Prediction
+  - name: System
+
+security:
+  - bearerAuth: []
+
+paths:
+  /v1/health:
+    get:
+      tags: [System]
+      summary: Healthcheck
+      security: []  # public
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+              examples:
+                ok:
+                  value:
+                    status: "ok"
+                    time_utc: "2026-02-13T10:00:00Z"
+
+  /v1/auth/register:
+    post:
+      tags: [Auth]
+      summary: Créer un compte
+      security: []  # public
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+            examples:
+              example1:
+                value:
+                  email: "etudiant@example.com"
+                  password: "MotDePasse123!"
+                  display_name: "Bakho"
+      responses:
+        "201":
+          description: Compte créé
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserPublic"
+              examples:
+                created:
+                  value:
+                    id: "b1bb3f5e-0e4d-4d2a-9fef-3a1d9b8b7a11"
+                    email: "etudiant@example.com"
+                    display_name: "Bakho"
+                    created_at: "2026-02-13T10:00:00Z"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          description: Email déjà utilisé
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                conflict:
+                  value:
+                    code: "EMAIL_ALREADY_USED"
+                    message: "Cet email est déjà utilisé."
+
+  /v1/auth/login:
+    post:
+      tags: [Auth]
+      summary: Se connecter (retourne des tokens)
+      security: []  # public
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+            examples:
+              example1:
+                value:
+                  email: "etudiant@example.com"
+                  password: "MotDePasse123!"
+      responses:
+        "200":
+          description: Auth OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokensResponse"
+              examples:
+                ok:
+                  value:
+                    token_type: "Bearer"
+                    access_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    expires_in: 3600
+                    refresh_token: "rft_1mS7q...xP"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /v1/auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Renouveler l'access_token avec un refresh_token
+      security: []  # public
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshRequest"
+            examples:
+              example1:
+                value:
+                  refresh_token: "rft_1mS7q...xP"
+      responses:
+        "200":
+          description: Nouveau access_token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokensResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /v1/auth/logout:
+    post:
+      tags: [Auth]
+      summary: Déconnexion (invalide le refresh_token côté serveur)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LogoutRequest"
+            examples:
+              example1:
+                value:
+                  refresh_token: "rft_1mS7q...xP"
+      responses:
+        "204":
+          description: Déconnecté
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /v1/users/me:
+    get:
+      tags: [Users]
+      summary: Récupérer le profil de l'utilisateur connecté
+      responses:
+        "200":
+          description: Profil
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserPublic"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /v1/predict-success:
+    post:
+      tags: [Prediction]
+      summary: Prédire un pourcentage de réussite (modèle ML)
+      description: >
+        Les valeurs doivent correspondre aux unités attendues par le modèle.
+        Toutes les entrées sont mesurées sur la période indiquée.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PredictSuccessRequest"
+            examples:
+              example1:
+                value:
+                  period_days: 7
+                  hours_worked: 12.5
+                  exercises_done: 8
+                  sleep_hours_avg: 7.2
+      responses:
+        "200":
+          description: Prédiction OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PredictSuccessResponse"
+              examples:
+                ok:
+                  value:
+                    request_id: "6c6a2d25-0a5b-4ac2-9c07-3e9a5a9d1c2f"
+                    model_version: "2026-02-13.1"
+                    success_percent: 78
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          description: Trop de requêtes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                rateLimit:
+                  value:
+                    code: "RATE_LIMITED"
+                    message: "Trop de requêtes, réessaie plus tard."
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  responses:
+    BadRequest:
+      description: Requête invalide (validation)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            validation:
+              value:
+                code: "VALIDATION_ERROR"
+                message: "sleep_hours_avg doit être entre 0 et 24"
+                details:
+                  field: "sleep_hours_avg"
+                  rule: "range(0..24)"
+
+    Unauthorized:
+      description: Non authentifié / token invalide
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            noToken:
+              value:
+                code: "UNAUTHORIZED"
+                message: "Token manquant ou invalide."
+
+  schemas:
+    HealthResponse:
+      type: object
+      additionalProperties: false
+      required: [status, time_utc]
+      properties:
+        status:
+          type: string
+          example: "ok"
+        time_utc:
+          type: string
+          format: date-time
+
+    RegisterRequest:
+      type: object
+      additionalProperties: false
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        password:
+          type: string
+          minLength: 8
+          maxLength: 72
+          description: "Mot de passe (ex: 8+ caractères)."
+        display_name:
+          type: string
+          minLength: 1
+          maxLength: 50
+
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        password:
+          type: string
+          minLength: 1
+          maxLength: 72
+
+    RefreshRequest:
+      type: object
+      additionalProperties: false
+      required: [refresh_token]
+      properties:
+        refresh_token:
+          type: string
+          minLength: 10
+          maxLength: 2048
+
+    LogoutRequest:
+      type: object
+      additionalProperties: false
+      required: [refresh_token]
+      properties:
+        refresh_token:
+          type: string
+          minLength: 10
+          maxLength: 2048
+
+    TokensResponse:
+      type: object
+      additionalProperties: false
+      required: [token_type, access_token, expires_in, refresh_token]
+      properties:
+        token_type:
+          type: string
+          enum: [Bearer]
+        access_token:
+          type: string
+          description: "JWT à mettre dans Authorization: Bearer <token>"
+        expires_in:
+          type: integer
+          minimum: 60
+          maximum: 86400
+          description: "Durée de validité de l'access_token (secondes)"
+          example: 3600
+        refresh_token:
+          type: string
+          description: "Token long pour renouveler l'access_token"
+
+    UserPublic:
+      type: object
+      additionalProperties: false
+      required: [id, email, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        display_name:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    PredictSuccessRequest:
+      type: object
+      additionalProperties: false
+      required: [period_days, hours_worked, exercises_done, sleep_hours_avg]
+      properties:
+        period_days:
+          type: integer
+          minimum: 1
+          maximum: 60
+          description: "Nombre de jours couverts par les valeurs"
+          example: 7
+        hours_worked:
+          type: number
+          minimum: 0
+          maximum: 500
+          description: "Heures travaillées sur la période"
+          example: 12.5
+        exercises_done:
+          type: integer
+          minimum: 0
+          maximum: 10000
+          description: "Nombre d'exercices faits sur la période"
+          example: 8
+        sleep_hours_avg:
+          type: number
+          minimum: 0
+          maximum: 24
+          description: "Moyenne d'heures de sommeil sur la période"
+          example: 7.2
+
+    PredictSuccessResponse:
+      type: object
+      additionalProperties: false
+      required: [request_id, model_version, success_percent]
+      properties:
+        request_id:
+          type: string
+          format: uuid
+          description: "ID de traçabilité de la prédiction"
+        model_version:
+          type: string
+          description: "Version du modèle ML utilisé"
+          example: "2026-02-13.1"
+        success_percent:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: "Pourcentage de réussite prédit par le modèle"
+          example: 78
+
+    Error:
+      type: object
+      additionalProperties: false
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          example: "VALIDATION_ERROR"
+        message:
+          type: string
+          example: "hours_worked doit être >= 0"
+        details:
+          type: object
+          nullable: true

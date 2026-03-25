@@ -9,6 +9,7 @@ import androidx.compose.material.icons.outlined.TrendingUp
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.example.studypredict.network.RemoteBadge
 
 enum class BadgeCategory {
     ALL, TRAVAIL, PRESENCE, EXERCICES, SOMMEIL, CONCENTRATION, SUCCES
@@ -116,3 +117,42 @@ fun demoBadges(): List<Badge> = listOf(
         unlocked = true
     )
 )
+
+fun badgesFromBackend(remoteBadges: List<RemoteBadge>): List<Badge> {
+    if (remoteBadges.isEmpty()) return demoBadges()
+
+    return remoteBadges.map { remote ->
+        val normalized = remote.badgeName
+            .lowercase()
+            .replace("é", "e")
+            .replace("è", "e")
+            .replace("ê", "e")
+            .replace("à", "a")
+            .replace("ù", "u")
+
+        val (category, icon, color) = when {
+            "assidu" in normalized || "presence" in normalized ->
+                Triple(BadgeCategory.PRESENCE, Icons.Outlined.Groups, Color(0xFF10B981))
+            "equilibre" in normalized || "sommeil" in normalized ->
+                Triple(BadgeCategory.SOMMEIL, Icons.Outlined.NightsStay, Color(0xFF7C5CFF))
+            "regulier" in normalized || "exercice" in normalized ->
+                Triple(BadgeCategory.EXERCICES, Icons.Outlined.TrendingUp, Color(0xFFFF6A00))
+            "concentre" in normalized || "focus" in normalized ->
+                Triple(BadgeCategory.CONCENTRATION, Icons.Outlined.Psychology, Color(0xFFFF2D2D))
+            "potentiel" in normalized || "succes" in normalized || "progression" in normalized ->
+                Triple(BadgeCategory.SUCCES, Icons.Outlined.AutoAwesome, Color(0xFFF4B400))
+            else ->
+                Triple(BadgeCategory.TRAVAIL, Icons.Outlined.MenuBook, Color(0xFFFF6A00))
+        }
+
+        Badge(
+            id = remote.id.toString(),
+            title = remote.badgeName,
+            description = remote.description ?: "Badge de progression",
+            category = category,
+            icon = icon,
+            color = color,
+            unlocked = remote.unlocked
+        )
+    }
+}

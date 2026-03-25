@@ -40,20 +40,54 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.studypredict.badges.Badge
 import com.example.studypredict.badges.BadgeCategory
+import com.example.studypredict.badges.badgesFromBackend
 import com.example.studypredict.badges.demoBadges
+import com.example.studypredict.network.ApiResult
+import com.example.studypredict.network.BackendApi
 import kotlin.math.ceil
 import kotlin.math.roundToInt
 
 @Composable
-fun BadgesScreen(onBack: () -> Unit) {
+fun BadgesScreen(
+    onBack: () -> Unit,
+    token: String?,
+    onUnauthorized: () -> Unit
+) {
     var selectedBadge by remember { mutableStateOf<Badge?>(null) }
 
     val bg = Color(0xFFF2F6FF)
     val card = Color(0xFFF7FAFF)
 
     var selected by remember { mutableStateOf(BadgeCategory.ALL) }
+    var loading by remember { mutableStateOf(true) }
+    var loadError by remember { mutableStateOf<String?>(null) }
+    var allBadges by remember { mutableStateOf<List<Badge>>(emptyList()) }
 
-    val allBadges = remember { demoBadges() }
+    LaunchedEffect(token) {
+        if (token.isNullOrBlank()) {
+            loading = false
+            loadError = "Connectez-vous pour voir vos badges."
+            allBadges = demoBadges()
+            return@LaunchedEffect
+        }
+        loading = true
+        loadError = null
+        when (val result = BackendApi.getMyBadges(token)) {
+            is ApiResult.Success -> {
+                allBadges = badgesFromBackend(result.data)
+                loading = false
+            }
+            is ApiResult.Failure -> {
+                loading = false
+                if (result.unauthorized) {
+                    onUnauthorized()
+                } else {
+                    loadError = result.message
+                    allBadges = demoBadges()
+                }
+            }
+        }
+    }
     val unlocked = allBadges.filter { it.unlocked }
     val locked = allBadges.filter { !it.unlocked }
 
@@ -111,6 +145,27 @@ fun BadgesScreen(onBack: () -> Unit) {
                     )
                 }
                 Text("Collectionnez tous les badges", color = Color(0xFF6B7280))
+            }
+
+            if (loading) {
+                item {
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                }
+            }
+
+            loadError?.let { message ->
+                item {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFFFFF1F2)
+                    ) {
+                        Text(
+                            text = message,
+                            color = Color(0xFF9F1239),
+                            modifier = Modifier.padding(12.dp)
+                        )
+                    }
+                }
             }
 
             item {

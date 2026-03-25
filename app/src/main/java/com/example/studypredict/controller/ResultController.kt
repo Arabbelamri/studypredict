@@ -25,6 +25,11 @@ class ResultController {
             focusLevel = input.focusLevel
         )
 
+        return buildResultFromScore(input, score)
+    }
+
+    fun buildResultFromScore(input: AnalysisInput, scorePercent: Int): AnalysisResult {
+        val score = scorePercent.coerceIn(0, 100)
         return AnalysisResult(
             scorePercent = score,
             grade = computeGrade(score),
@@ -69,11 +74,10 @@ class ResultController {
 
     fun computeGrade(score: Int): String {
         return when {
-            score >= 85 -> "A"
-            score >= 70 -> "B"
-            score >= 55 -> "C"
-            score >= 40 -> "D"
-            else -> "E"
+            score >= 80 -> "A"
+            score >= 60 -> "B"
+            score >= 40 -> "C"
+            else -> "D"
         }
     }
 

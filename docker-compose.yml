@@ -1,0 +1,20 @@
+services:
+  api:
+    build:
+      context: ./studypredict-main_App
+      dockerfile: backend/api/Dockerfile
+    container_name: student-success-api
+    environment:
+      APP_NAME: Student Success Predictor API
+      APP_HOST: 0.0.0.0
+      APP_PORT: 8080
+      JWT_SECRET: change-me-in-production
+      ACCESS_TOKEN_EXPIRE_SECONDS: 3600
+      DATABASE_URL: sqlite:////app/AppliMobile.db
+      ML_MODEL_PATH: /app/ml/model.pkl
+      ML_FEATURE_COLUMNS_PATH: /app/ml/feature_columns.pkl
+      ML_MODEL_VERSION: automl-local-v1
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./studypredict-main_App/backend/api/AppliMobile.db:/app/AppliMobile.db
