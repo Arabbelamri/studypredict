@@ -35,7 +35,10 @@ android {
     }
     kotlinOptions { jvmTarget = "1.8" }
 
-    buildFeatures { compose = true }
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
 
     composeOptions {
         // laisse comme ça pour l’instant si ton projet compile déjà avec
