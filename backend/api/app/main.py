@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+import logging
 import mimetypes
 import shutil
 from pathlib import Path
@@ -6,7 +7,7 @@ from uuid import uuid4
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile, status
 from fastapi.responses import FileResponse
-from sqlalchemy import func
+from sqlalchemy import func, inspect, text
 from sqlalchemy.orm import Session
 
 from .config import settings
@@ -18,11 +19,12 @@ from .models import (
     AdviceRule,
     Badge,
     Base,
-    Note,
     Prediction,
     PredictionAdvice,
+    TextNote,
     User,
     UserBadge,
+    VoiceNote,
 )
 from .schemas import (
     AdviceItem,
@@ -43,8 +45,55 @@ from .schemas import (
 from .security import create_access_token, create_refresh_token, hash_password, verify_password
 from .store import store
 
+
+def _migrate_notes_table() -> None:
+    inspector = inspect(engine)
+    if not inspector.has_table("notes"):
+        return
+    with engine.begin() as conn:
+        rows = conn.execute(
+            text(
+                "SELECT id, user_id, note_type, title, content, audio_path, created_at, updated_at FROM notes"
+            )
+        ).mappings().all()
+        if not rows:
+            conn.execute(text("DROP TABLE notes"))
+            return
+
+        conn.execute(text("DELETE FROM text_notes"))
+        conn.execute(text("DELETE FROM voice_notes"))
+        for record in rows:
+            if record["note_type"] == "voice":
+                conn.execute(
+                    VoiceNote.__table__.insert(),
+                    {
+                        "id": record["id"],
+                        "user_id": record["user_id"],
+                        "title": record["title"],
+                        "content": record["content"],
+                        "audio_path": record["audio_path"],
+                        "created_at": record["created_at"],
+                        "updated_at": record["updated_at"],
+                    },
+                )
+            else:
+                conn.execute(
+                    TextNote.__table__.insert(),
+                    {
+                        "id": record["id"],
+                        "user_id": record["user_id"],
+                        "title": record["title"],
+                        "content": record["content"],
+                        "created_at": record["created_at"],
+                        "updated_at": record["updated_at"],
+                    },
+                )
+        conn.execute(text("DROP TABLE notes"))
+
 app = FastAPI(title=settings.APP_NAME, version="1.0.0")
 Base.metadata.create_all(bind=engine)
+_migrate_notes_table()
+logger = logging.getLogger(__name__)
 
 
 def _parse_created_at(value: str) -> datetime:
@@ -162,22 +211,30 @@ def _parse_optional_datetime(value: str | None) -> datetime | None:
     except ValueError:
         return None
 
-
-def _note_audio_url(note: Note, request: Request | None) -> str | None:
-    if not note.audio_path or request is None:
+def _note_audio_url(audio_path: str | None, request: Request | None, note_id: int) -> str | None:
+    if not audio_path or request is None:
         return None
-    return request.url_for("download_voice_note", note_id=note.id)
+    return str(request.url_for("download_voice_note", note_id=note_id))
 
 
-def _to_note_item(note: Note, request: Request | None) -> NoteItem:
+def _to_note_item(
+    id: int,
+    note_type: str,
+    title: str,
+    content: str,
+    created_at: str,
+    updated_at: str,
+    audio_path: str | None,
+    request: Request | None,
+) -> NoteItem:
     return NoteItem(
-        id=note.id,
-        note_type=note.note_type,
-        title=note.title,
-        content=note.content,
-        audio_url=_note_audio_url(note, request),
-        created_at=_parse_created_at(note.created_at),
-        updated_at=_parse_created_at(note.updated_at),
+        id=id,
+        note_type=note_type,
+        title=title,
+        content=content,
+        audio_url=_note_audio_url(audio_path, request, id),
+        created_at=_parse_created_at(created_at),
+        updated_at=_parse_created_at(updated_at),
     )
 
 
@@ -505,13 +562,49 @@ async def list_my_notes(
     current_user: UserPublic = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> list[NoteItem]:
-    notes = (
-        db.query(Note)
-        .filter(Note.user_id == int(current_user.id))
-        .order_by(Note.id.desc())
+    text_notes = (
+        db.query(TextNote)
+        .filter(TextNote.user_id == int(current_user.id))
+        .order_by(TextNote.id.desc())
         .all()
     )
-    return [_to_note_item(note, request) for note in notes]
+    voice_notes = (
+        db.query(VoiceNote)
+        .filter(VoiceNote.user_id == int(current_user.id))
+        .order_by(VoiceNote.id.desc())
+        .all()
+    )
+
+    items: list[NoteItem] = []
+    for note in text_notes:
+        items.append(
+            _to_note_item(
+                id=note.id,
+                note_type="text",
+                title=note.title,
+                content=note.content,
+                created_at=note.created_at,
+                updated_at=note.updated_at,
+                audio_path=None,
+                request=request,
+            )
+        )
+    for note in voice_notes:
+        items.append(
+            _to_note_item(
+                id=note.id,
+                note_type="voice",
+                title=note.title,
+                content=note.content,
+                created_at=note.created_at,
+                updated_at=note.updated_at,
+                audio_path=note.audio_path,
+                request=request,
+            )
+        )
+
+    items.sort(key=lambda item: item.created_at, reverse=True)
+    return items
 
 
 @app.post("/v1/notes", response_model=NoteItem, status_code=status.HTTP_201_CREATED, tags=["Notes"])
@@ -522,9 +615,8 @@ async def create_note(
     db: Session = Depends(get_db),
 ) -> NoteItem:
     now_iso = datetime.now(UTC).isoformat()
-    note = Note(
+    note = TextNote(
         user_id=int(current_user.id),
-        note_type=payload.note_type.strip().lower(),
         title=payload.title.strip(),
         content=payload.content.strip(),
         created_at=now_iso,
@@ -534,7 +626,16 @@ async def create_note(
     db.commit()
     db.refresh(note)
 
-    return _to_note_item(note, request)
+    return _to_note_item(
+        id=note.id,
+        note_type="text",
+        title=note.title,
+        content=note.content,
+        created_at=note.created_at,
+        updated_at=note.updated_at,
+        audio_path=None,
+        request=request,
+    )
 
 
 @app.post("/v1/notes/voice", response_model=NoteItem, status_code=status.HTTP_201_CREATED, tags=["Notes"])
@@ -552,32 +653,45 @@ async def create_voice_note(
             detail={"code": "INVALID_AUDIO_FILE", "message": "Le fichier doit être un audio valide."},
         )
 
-    voice_dir = Path(settings.VOICE_NOTES_DIR)
-    voice_dir.mkdir(parents=True, exist_ok=True)
-    file_suffix = Path(audio_file.filename or "").suffix or ".m4a"
-    target_path = voice_dir / f"{uuid4().hex}{file_suffix}"
-
     try:
+        voice_dir = Path(settings.VOICE_NOTES_DIR)
+        voice_dir.mkdir(parents=True, exist_ok=True)
+        file_suffix = Path(audio_file.filename or "").suffix or ".m4a"
+        target_path = voice_dir / f"{uuid4().hex}{file_suffix}"
+
         with target_path.open("wb") as buffer:
             shutil.copyfileobj(audio_file.file, buffer)
+
+        now_iso = datetime.now(UTC).isoformat()
+        note = VoiceNote(
+            user_id=int(current_user.id),
+            title=title.strip(),
+            content=(content.strip() if content else ""),
+            audio_path=str(target_path.resolve()),
+            created_at=now_iso,
+            updated_at=now_iso,
+        )
+        db.add(note)
+        db.commit()
+        db.refresh(note)
+        return _to_note_item(
+            id=note.id,
+            note_type="voice",
+            title=note.title,
+            content=note.content,
+            created_at=note.created_at,
+            updated_at=note.updated_at,
+            audio_path=note.audio_path,
+            request=request,
+        )
+    except Exception as exc:
+        logger.exception("Failed to create voice note for user %s", current_user.id)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"code": "VOICE_NOTE_ERROR", "message": str(exc)},
+        )
     finally:
         await audio_file.close()
-
-    now_iso = datetime.now(UTC).isoformat()
-    note = Note(
-        user_id=int(current_user.id),
-        note_type="voice",
-        title=title.strip(),
-        content=(content.strip() if content else ""),
-        audio_path=str(target_path.resolve()),
-        created_at=now_iso,
-        updated_at=now_iso,
-    )
-    db.add(note)
-    db.commit()
-    db.refresh(note)
-
-    return _to_note_item(note, request)
 
 
 @app.get(
@@ -592,8 +706,8 @@ async def download_voice_note(
     db: Session = Depends(get_db),
 ) -> FileResponse:
     note = (
-        db.query(Note)
-        .filter(Note.id == note_id, Note.user_id == int(current_user.id))
+        db.query(VoiceNote)
+        .filter(VoiceNote.id == note_id, VoiceNote.user_id == int(current_user.id))
         .first()
     )
     if note is None or not note.audio_path:
@@ -624,10 +738,16 @@ async def delete_note(
     db: Session = Depends(get_db),
 ) -> None:
     note = (
-        db.query(Note)
-        .filter(Note.id == note_id, Note.user_id == int(current_user.id))
+        db.query(TextNote)
+        .filter(TextNote.id == note_id, TextNote.user_id == int(current_user.id))
         .first()
     )
+    if note is None:
+        note = (
+            db.query(VoiceNote)
+            .filter(VoiceNote.id == note_id, VoiceNote.user_id == int(current_user.id))
+            .first()
+        )
     if note is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

@@ -11,6 +11,7 @@ services:
       JWT_SECRET: change-me-in-production
       ACCESS_TOKEN_EXPIRE_SECONDS: 3600
       DATABASE_URL: sqlite:////app/AppliMobile.db
+      VOICE_NOTES_DIR: /app/voice_notes
       ML_MODEL_PATH: /app/ml/model.pkl
       ML_FEATURE_COLUMNS_PATH: /app/ml/feature_columns.pkl
       ML_MODEL_VERSION: automl-local-v1
@@ -18,3 +19,4 @@ services:
       - "8080:8080"
     volumes:
       - ./backend/api/AppliMobile.db:/app/AppliMobile.db
+      - ./backend/api/voice_notes:/app/voice_notes

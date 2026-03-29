@@ -49,12 +49,22 @@ class UserBadge(Base):
     unlocked_at: Mapped[str] = mapped_column(String)
 
 
-class Note(Base):
-    __tablename__ = "notes"
+class TextNote(Base):
+    __tablename__ = "text_notes"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
-    note_type: Mapped[str] = mapped_column(String, default="text")
+    title: Mapped[str] = mapped_column(String)
+    content: Mapped[str] = mapped_column(String)
+    created_at: Mapped[str] = mapped_column(String)
+    updated_at: Mapped[str] = mapped_column(String)
+
+
+class VoiceNote(Base):
+    __tablename__ = "voice_notes"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     title: Mapped[str] = mapped_column(String)
     content: Mapped[str] = mapped_column(String)
     audio_path: Mapped[str | None] = mapped_column(String, nullable=True)

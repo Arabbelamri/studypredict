@@ -409,27 +409,32 @@ fun NotesScreen(
                         }
                         scope.launch {
                             isUploadingVoice = true
-                            when (val result = BackendApi.createVoiceNote(
-                                token,
-                                title.trim(),
-                                voiceDescription.trim().takeIf { it.isNotBlank() },
-                                file.absolutePath
-                            )) {
-                                is ApiResult.Success -> {
-                                    title = ""
-                                    voiceDescription = ""
-                                    recordedFile = null
-                                    isLocalPlaying = false
-                                    file.delete()
-                                    loadNotes()
-                                    snackbarHostState.showSnackbar("Mémo vocal enregistré")
-                                }
+                            try {
+                                when (val result = BackendApi.createVoiceNote(
+                                    token,
+                                    title.trim(),
+                                    voiceDescription.trim().takeIf { it.isNotBlank() },
+                                    file.absolutePath
+                                )) {
+                                    is ApiResult.Success -> {
+                                        title = ""
+                                        voiceDescription = ""
+                                        recordedFile = null
+                                        isLocalPlaying = false
+                                        file.delete()
+                                        loadNotes()
+                                        snackbarHostState.showSnackbar("Mémo vocal enregistré")
+                                    }
 
-                                is ApiResult.Failure -> {
-                                    if (result.unauthorized) onUnauthorized() else snackbarHostState.showSnackbar(result.message)
+                                    is ApiResult.Failure -> {
+                                        if (result.unauthorized) onUnauthorized() else snackbarHostState.showSnackbar(result.message)
+                                    }
                                 }
+                            } catch (_: Exception) {
+                                snackbarHostState.showSnackbar("Impossible d'ajouter le mémo vocal.")
+                            } finally {
+                                isUploadingVoice = false
                             }
-                            isUploadingVoice = false
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
@@ -546,7 +551,7 @@ private fun NoteRow(
                         color = Color(0xFF2563EB),
                         fontSize = 12.sp
                     )
-                    if (note.audioUrl != null) {
+                    if (note.noteType == "voice" && note.audioUrl != null) {
                         IconButton(onClick = ::toggleRemotePlayback, enabled = !isRemoteLoading) {
                             Icon(
                                 imageVector = if (isRemotePlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
