@@ -1,6 +1,7 @@
 package com.example.studypredict.network
 
 import android.os.Build
+import com.example.studypredict.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -60,7 +61,7 @@ sealed class ApiResult<out T> {
     data class Failure(val message: String, val unauthorized: Boolean = false) : ApiResult<Nothing>()
 }
 
-private const val CUSTOM_BACKEND_URL = ""
+private const val CUSTOM_BACKEND_URL = BuildConfig.CUSTOM_BACKEND_URL
 
 object BackendApi {
     private val BASE_URL: String

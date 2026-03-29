@@ -16,6 +16,7 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
+        buildConfigField("String", "CUSTOM_BACKEND_URL", "\"http://10.98.151.155:8080\"")
     }
 
     buildTypes {
