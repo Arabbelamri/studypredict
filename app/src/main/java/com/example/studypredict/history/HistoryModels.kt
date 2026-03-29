@@ -7,6 +7,8 @@ data class AnalysisRecord(
     val dateLabel: String, // “11 mars 2026 à 10:07”
     val hoursPerWeek: Int,
     val attendancePercent: Int,
+    val exercisesPerMonth: Int,
+    val sleepHours: Int,
 )
 
 fun demoHistoryEmpty(): List<AnalysisRecord> = emptyList()
@@ -18,6 +20,8 @@ fun demoHistoryOne(): List<AnalysisRecord> = listOf(
         grade = "D",
         dateLabel = "11 mars 2026 à 10:07",
         hoursPerWeek = 10,
-        attendancePercent = 80
+        attendancePercent = 80,
+        exercisesPerMonth = 6,
+        sleepHours = 6
     )
 )

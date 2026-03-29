@@ -53,6 +53,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.drawToBitmap
 import com.example.studypredict.controller.ResultController
+import com.example.studypredict.history.HistoryStore
 import com.example.studypredict.model.AnalysisResult
 import com.example.studypredict.ui.components.ShareResultDialog
 import com.example.studypredict.utils.saveBitmapToGallery
@@ -60,6 +61,21 @@ import com.example.studypredict.utils.saveTextToDocuments
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
+
+private enum class TrendDirection(val arrow: String, val color: Color) {
+    Up("\u2197", Color(0xFF10B981)),
+    Neutral("\u2192", Color(0xFFF59E0B)),
+    Down("\u2198", Color(0xFFEF4444))
+}
+
+private fun trendByComparison(current: Int, previous: Int?): TrendDirection {
+    if (previous == null) return TrendDirection.Neutral
+    return when {
+        current > previous -> TrendDirection.Up
+        current < previous -> TrendDirection.Down
+        else -> TrendDirection.Neutral
+    }
+}
 
 @Composable
 fun ResultScreen(
@@ -70,7 +86,6 @@ fun ResultScreen(
     val bg = Color(0xFFF2F6FF)
     val purple = Color(0xFF6D41FF)
     val orange = Color(0xFFFF6A00)
-    val green = Color(0xFF10B981)
     val dark = Color(0xFF0B1220)
 
     val controller = remember { ResultController() }
@@ -96,6 +111,7 @@ fun ResultScreen(
     val view = LocalView.current
 
     val exportText = remember(result) { controller.buildExportText(result) }
+    val previousRecord = remember(result) { HistoryStore.records.value.firstOrNull() }
 
     LaunchedEffect(result) {
         controller.saveToHistory(result)
@@ -251,15 +267,13 @@ fun ResultScreen(
                             modifier = Modifier.weight(1f),
                             label = "Travail",
                             value = "${result.hoursPerWeek}h",
-                            trendColor = orange,
-                            trendArrow = "↘"
+                            trend = trendByComparison(result.hoursPerWeek, previousRecord?.hoursPerWeek)
                         )
                         DetailItem(
                             modifier = Modifier.weight(1f),
                             label = "Présence",
                             value = "${result.attendancePercent}%",
-                            trendColor = green,
-                            trendArrow = "↗"
+                            trend = trendByComparison(result.attendancePercent, previousRecord?.attendancePercent)
                         )
                     }
 
@@ -273,15 +287,13 @@ fun ResultScreen(
                             modifier = Modifier.weight(1f),
                             label = "Exercices",
                             value = result.exercisesPerMonth.toString(),
-                            trendColor = green,
-                            trendArrow = "↗"
+                            trend = trendByComparison(result.exercisesPerMonth, previousRecord?.exercisesPerMonth)
                         )
                         DetailItem(
                             modifier = Modifier.weight(1f),
                             label = "Sommeil",
                             value = "${result.sleepHours}h",
-                            trendColor = green,
-                            trendArrow = "↗"
+                            trend = trendByComparison(result.sleepHours, previousRecord?.sleepHours)
                         )
                     }
                 }
@@ -353,7 +365,7 @@ fun ResultScreen(
                 ) {
                     Icon(imageVector = Icons.Outlined.Refresh, contentDescription = null)
                     Spacer(Modifier.width(12.dp))
-                    Text("Nouvelle analyse", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text("Acceuil", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 }
             }
 
@@ -494,21 +506,22 @@ private fun DetailItem(
     modifier: Modifier,
     label: String,
     value: String,
-    trendColor: Color,
-    trendArrow: String
+    trend: TrendDirection
 ) {
     Column(modifier = modifier) {
         Text(label, color = Color(0xFF6B7280))
         Spacer(Modifier.height(6.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-            value,
-            fontSize = 22.sp,
-            fontWeight = FontWeight.ExtraBold,
-            color = Color(0xFF0B1220)
-        )
+                value,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = Color(0xFF0B1220)
+            )
             Spacer(Modifier.width(8.dp))
-            Text(trendArrow, color = trendColor, fontWeight = FontWeight.ExtraBold)
+            Text(trend.arrow, color = trend.color, fontWeight = FontWeight.ExtraBold)
         }
     }
 }
+
+

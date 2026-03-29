@@ -43,9 +43,12 @@ import com.example.studypredict.view.reminders.ReminderScreen
 import com.example.studypredict.view.steps.AttendanceStepScreen
 import com.example.studypredict.view.steps.ExercisesStepScreen
 import com.example.studypredict.view.steps.FocusStepScreen
+import com.example.studypredict.view.steps.PhysicalActivityStepScreen
+import com.example.studypredict.view.steps.PreviousScoresStepScreen
 import com.example.studypredict.view.steps.ResultScreen
 import com.example.studypredict.view.steps.SleepStepScreen
 import com.example.studypredict.view.steps.StudyHoursStepScreen
+import com.example.studypredict.view.steps.TutoringSessionsStepScreen
 import com.example.studypredict.view.tips.TipsScreen
 import kotlinx.coroutines.launch
 
@@ -264,7 +267,7 @@ fun AppNav() {
         composable(Routes.STEP1) {
             StudyHoursStepScreen(
                 stepIndex = 1,
-                totalSteps = 5,
+                totalSteps = 8,
                 onNext = { hours ->
                     analysisInput = analysisInput.copy(hoursPerWeek = hours)
                     navController.navigate(Routes.STEP2)
@@ -276,7 +279,7 @@ fun AppNav() {
         composable(Routes.STEP2) {
             AttendanceStepScreen(
                 stepIndex = 2,
-                totalSteps = 5,
+                totalSteps = 8,
                 onBack = { navController.popBackStack() },
                 onNext = { attendance ->
                     analysisInput = analysisInput.copy(attendancePercent = attendance)
@@ -288,7 +291,7 @@ fun AppNav() {
         composable(Routes.STEP3) {
             ExercisesStepScreen(
                 stepIndex = 3,
-                totalSteps = 5,
+                totalSteps = 8,
                 onBack = { navController.popBackStack() },
                 onNext = { exercises ->
                     analysisInput = analysisInput.copy(exercisesPerMonth = exercises)
@@ -300,7 +303,7 @@ fun AppNav() {
         composable(Routes.STEP4) {
             SleepStepScreen(
                 stepIndex = 4,
-                totalSteps = 5,
+                totalSteps = 8,
                 onBack = { navController.popBackStack() },
                 onNext = { sleep ->
                     analysisInput = analysisInput.copy(sleepHours = sleep)
@@ -310,9 +313,48 @@ fun AppNav() {
         }
 
         composable(Routes.STEP5) {
-            FocusStepScreen(
+            PreviousScoresStepScreen(
                 stepIndex = 5,
-                totalSteps = 5,
+                totalSteps = 8,
+                onBack = { navController.popBackStack() },
+                onNext = { previous ->
+                    analysisInput = analysisInput.copy(previousScores = previous)
+                    navController.navigate(Routes.STEP6)
+                }
+            )
+        }
+
+        composable(Routes.STEP6) {
+            TutoringSessionsStepScreen(
+                stepIndex = 6,
+                totalSteps = 8,
+                onBack = { navController.popBackStack() },
+                onNext = { sessions ->
+                    analysisInput = analysisInput.copy(tutoringSessions = sessions)
+                    navController.navigate(Routes.STEP7)
+                }
+            )
+        }
+
+        composable(Routes.STEP7) {
+            PhysicalActivityStepScreen(
+                stepIndex = 7,
+                totalSteps = 8,
+                onBack = { navController.popBackStack() },
+                onNext = { physical, extracurricular ->
+                    analysisInput = analysisInput.copy(
+                        physicalActivityHours = physical,
+                        extracurricularActivities = extracurricular
+                    )
+                    navController.navigate(Routes.STEP8)
+                }
+            )
+        }
+
+        composable(Routes.STEP8) {
+            FocusStepScreen(
+                stepIndex = 8,
+                totalSteps = 8,
                 isSubmitting = isPredicting,
                 onBack = { navController.popBackStack() },
                 onSeeResult = { focus ->
@@ -333,7 +375,11 @@ fun AppNav() {
                             hoursWorked = (analysisInput.hoursPerWeek * 4).toDouble(),
                             exercisesDone = analysisInput.exercisesPerMonth,
                             sleepHoursAvg = analysisInput.sleepHours.toDouble(),
-                            attendance = analysisInput.attendancePercent.toDouble()
+                            attendance = analysisInput.attendancePercent.toDouble(),
+                            previousScores = analysisInput.previousScores.toDouble(),
+                            tutoringSessions = analysisInput.tutoringSessions,
+                            physicalActivity = analysisInput.physicalActivityHours.toDouble(),
+                            extracurricularActivities = analysisInput.extracurricularActivities
                         )
 
                         isPredicting = false
@@ -415,8 +461,18 @@ fun AppNav() {
 
         composable(Routes.HISTORY) {
             HistoryScreen(
+                token = accessToken,
                 onBack = { navController.popBackStack() },
-                onStartAnalysis = { navController.navigate(Routes.STEP1) }
+                onStartAnalysis = { navController.navigate(Routes.STEP1) },
+                onUnauthorized = {
+                    SessionStore.clear(context)
+                    accessToken = null
+                    refreshToken = null
+                    userEmail = ""
+                    displayName = ""
+                    isLoggedIn = false
+                    openLogin()
+                }
             )
         }
 
@@ -425,7 +481,19 @@ fun AppNav() {
         }
 
         composable(Routes.TIPS) {
-            TipsScreen(onBack = { navController.popBackStack() })
+            TipsScreen(
+                token = accessToken,
+                onBack = { navController.popBackStack() },
+                onUnauthorized = {
+                    SessionStore.clear(context)
+                    accessToken = null
+                    refreshToken = null
+                    userEmail = ""
+                    displayName = ""
+                    isLoggedIn = false
+                    openLogin()
+                }
+            )
         }
 
         composable(Routes.REMINDERS) {
@@ -433,7 +501,19 @@ fun AppNav() {
         }
 
         composable(Routes.NOTES) {
-            NotesScreen(onBack = { navController.popBackStack() })
+            NotesScreen(
+                token = accessToken,
+                onBack = { navController.popBackStack() },
+                onUnauthorized = {
+                    SessionStore.clear(context)
+                    accessToken = null
+                    refreshToken = null
+                    userEmail = ""
+                    displayName = ""
+                    isLoggedIn = false
+                    openLogin()
+                }
+            )
         }
     }
 }

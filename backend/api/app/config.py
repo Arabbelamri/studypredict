@@ -51,6 +51,7 @@ class Settings(BaseSettings):
     ML_FEATURE_COLUMNS_PATH: str = _default_feature_columns_path()
     ML_MODEL_VERSION: str = "automl-local-v1"
     DATABASE_URL: str = _default_database_url()
+    VOICE_NOTES_DIR: Path = Path.cwd() / "voice_notes"
 
 
 settings = Settings()

@@ -63,13 +63,40 @@ class PredictSuccessResponse(StrictModel):
     request_id: UUID
     model_version: str
     success_percent: int = Field(ge=0, le=100)
+    tips: list["AdviceItem"] = Field(default_factory=list)
 
 
 class PredictionHistoryItem(StrictModel):
     id: int
+    user_id: int
     predicted_score: float
+    hours_studied: float
+    attendance: float
     grade: str | None = None
     created_at: datetime
+
+
+class NoteCreateRequest(StrictModel):
+    note_type: str = Field(default="text", min_length=3, max_length=20)
+    title: str = Field(min_length=1, max_length=120)
+    content: str = Field(min_length=1, max_length=4000)
+
+
+class NoteItem(StrictModel):
+    id: int
+    note_type: str
+    title: str
+    content: str
+    audio_url: str | None = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class AdviceItem(StrictModel):
+    id: int
+    title: str
+    description: str
+    category: str
 
 
 class UserBadgeItem(StrictModel):

@@ -2,13 +2,17 @@ package com.example.studypredict.view.notes
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.media.MediaPlayer
+import android.media.MediaRecorder
+import android.net.Uri
+import java.io.File
+import java.time.OffsetDateTime
+import java.time.format.DateTimeParseException
+
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -21,20 +25,17 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.MicNone
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.EditNote
-import androidx.compose.material.icons.outlined.Mic
-import androidx.compose.material.icons.outlined.PlayArrow
-import androidx.compose.material.icons.outlined.Save
-import androidx.compose.material.icons.outlined.Stop
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -46,107 +47,185 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
-import com.example.studypredict.controller.NotesController
-import com.example.studypredict.model.NotesUiState
-import com.example.studypredict.model.TextNote
-import com.example.studypredict.model.VoiceNote
-import com.example.studypredict.audio.VoiceMemoPlayer
-import com.example.studypredict.audio.VoiceMemoRecorder
+import com.example.studypredict.model.NoteItem
+import com.example.studypredict.network.ApiResult
+import com.example.studypredict.network.BackendApi
 import kotlinx.coroutines.launch
-import java.io.File
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 private enum class NoteMode {
-    VOICE, TEXT
+    Text, Voice
 }
 
 @Composable
 fun NotesScreen(
-    onBack: () -> Unit
+    token: String?,
+    onBack: () -> Unit,
+    onUnauthorized: () -> Unit
 ) {
-    val context = LocalContext.current
-    val notesController = remember { NotesController(context) }
-
     val bg = Color(0xFFF2F6FF)
-    val card = Color(0xFFF7FAFF)
     val dark = Color(0xFF0B1220)
-    val gray = Color(0xFF6B7280)
-    val purple = Color(0xFF6D41FF)
-    val purpleGrad = Brush.horizontalGradient(
-        listOf(Color(0xFF4B3CFF), Color(0xFFB400FF))
-    )
-
-    val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val recordingsDir = remember { File(context.cacheDir, "voice_memos").apply { mkdirs() } }
+    val recorder = remember { MediaRecorder() }
+    val localPlayer = remember { MediaPlayer() }
 
-    var mode by remember { mutableStateOf(NoteMode.VOICE) }
-    var uiState by remember { mutableStateOf(NotesUiState()) }
-
-    val recorder = remember { VoiceMemoRecorder(context) }
-    val player = remember { VoiceMemoPlayer() }
-
-    var currentRecordingFile by remember { mutableStateOf<File?>(null) }
-
-    val voiceNotes = remember { mutableStateListOf<VoiceNote>() }
-    val textNotes = remember { mutableStateListOf<TextNote>() }
-
-    fun reloadAll() {
-        voiceNotes.clear()
-        voiceNotes.addAll(notesController.loadVoiceNotes())
-
-        textNotes.clear()
-        textNotes.addAll(notesController.loadTextNotes())
+    var loading by remember { mutableStateOf(true) }
+    var notes by remember { mutableStateOf<List<NoteItem>>(emptyList()) }
+    var mode by remember { mutableStateOf(NoteMode.Text) }
+    var title by remember { mutableStateOf("") }
+    var textContent by remember { mutableStateOf("") }
+    var voiceDescription by remember { mutableStateOf("") }
+    var recordedFile by remember { mutableStateOf<File?>(null) }
+    var tempRecordingFile by remember { mutableStateOf<File?>(null) }
+    var isRecording by remember { mutableStateOf(false) }
+    var isLocalPlaying by remember { mutableStateOf(false) }
+    var isLocalPreparing by remember { mutableStateOf(false) }
+    var isUploadingVoice by remember { mutableStateOf(false) }
+    var hasAudioPermission by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.RECORD_AUDIO
+            ) == PackageManager.PERMISSION_GRANTED
+        )
     }
-
-    LaunchedEffect(Unit) {
-        reloadAll()
-    }
-
-    val audioPermissionLauncher = rememberLauncherForActivityResult(
+    val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        if (granted) {
-            currentRecordingFile = recorder.startRecording()
-            uiState = uiState.copy(isRecording = true)
-        } else {
-            scope.launch {
-                snackbarHostState.showSnackbar("Permission micro refusée.")
-            }
-        }
-    }
-
-    fun stopRecordingSafely() {
-        runCatching { recorder.stopRecording() }
-        uiState = uiState.copy(isRecording = false)
-        currentRecordingFile = null
-        reloadAll()
-    }
+    ) { granted -> hasAudioPermission = granted }
 
     DisposableEffect(Unit) {
+        localPlayer.setOnCompletionListener { isLocalPlaying = false }
+        localPlayer.setOnErrorListener { _, _, _ ->
+            isLocalPreparing = false
+            isLocalPlaying = false
+            true
+        }
         onDispose {
-            if (uiState.isRecording) {
-                runCatching { recorder.stopRecording() }
-            }
-            player.stop()
+            recorder.release()
+            localPlayer.release()
         }
     }
+
+    fun requestAudioPermission() {
+        permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+    }
+
+    fun startRecording() {
+        if (!hasAudioPermission) {
+            requestAudioPermission()
+            return
+        }
+        if (isRecording) return
+
+        val targetFile = File(recordingsDir, "memo_${System.currentTimeMillis()}.m4a")
+        try {
+            recorder.reset()
+            recorder.setAudioSource(MediaRecorder.AudioSource.MIC)
+            recorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+            recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+            recorder.setOutputFile(targetFile.absolutePath)
+            recorder.prepare()
+            recorder.start()
+            isRecording = true
+            tempRecordingFile = targetFile
+        } catch (_: Exception) {
+            scope.launch { snackbarHostState.showSnackbar("Impossible de démarrer l'enregistrement.") }
+        }
+    }
+
+    fun stopRecording() {
+        if (!isRecording) return
+        try {
+            recorder.stop()
+        } catch (_: Exception) {
+        } finally {
+            recorder.reset()
+            isRecording = false
+            recordedFile = tempRecordingFile?.takeIf { it.exists() }
+            tempRecordingFile = null
+        }
+    }
+
+    fun toggleLocalPlayback() {
+        val file = recordedFile ?: return
+        if (isLocalPlaying) {
+            localPlayer.pause()
+            isLocalPlaying = false
+            return
+        }
+        try {
+            isLocalPreparing = true
+            localPlayer.reset()
+            localPlayer.setDataSource(file.absolutePath)
+            localPlayer.setOnPreparedListener { player ->
+                player.start()
+                isLocalPreparing = false
+                isLocalPlaying = true
+            }
+            localPlayer.setOnCompletionListener { isLocalPlaying = false }
+            localPlayer.setOnErrorListener { _, _, _ ->
+                isLocalPreparing = false
+                isLocalPlaying = false
+                true
+            }
+            localPlayer.prepareAsync()
+        } catch (_: Exception) {
+            isLocalPreparing = false
+            scope.launch { snackbarHostState.showSnackbar("Impossible de lire l'enregistrement.") }
+        }
+    }
+
+    fun loadNotes() {
+        if (token.isNullOrBlank()) {
+            loading = false
+            notes = emptyList()
+            return
+        }
+        scope.launch {
+            loading = true
+            when (val result = BackendApi.getMyNotes(token)) {
+                is ApiResult.Success -> {
+                    notes = result.data.map {
+                        NoteItem(
+                            id = it.id.toString(),
+                            noteType = it.noteType,
+                            title = it.title,
+                            content = it.content,
+                            createdAt = parseIsoMillis(it.createdAt),
+                            audioUrl = it.audioUrl
+                        )
+                    }
+                    loading = false
+                }
+
+                is ApiResult.Failure -> {
+                    loading = false
+                    if (result.unauthorized) {
+                        onUnauthorized()
+                    } else {
+                        snackbarHostState.showSnackbar(result.message)
+                    }
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(token) { loadNotes() }
 
     Scaffold(
         containerColor = bg,
@@ -158,460 +237,287 @@ fun NotesScreen(
                 .padding(inner)
                 .padding(horizontal = 18.dp)
         ) {
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(10.dp))
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onBack) {
-                    Icon(
-                        imageVector = Icons.Outlined.ArrowBack,
-                        contentDescription = "Retour",
-                        tint = dark
-                    )
+                    Icon(Icons.Outlined.ArrowBack, contentDescription = "Retour")
                 }
-                Text(
-                    text = "Retour",
-                    fontWeight = FontWeight.SemiBold,
-                    color = dark
-                )
+                Text("Retour", fontWeight = FontWeight.SemiBold)
             }
 
             Spacer(Modifier.height(8.dp))
+            Text("Notes", fontSize = 32.sp, fontWeight = FontWeight.ExtraBold, color = dark)
+            Spacer(Modifier.height(12.dp))
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .shadow(10.dp, RoundedCornerShape(16.dp), clip = false)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(purpleGrad),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = if (mode == NoteMode.VOICE) {
-                            Icons.Outlined.Mic
-                        } else {
-                            Icons.Outlined.EditNote
-                        },
-                        contentDescription = null,
-                        tint = Color.White
-                    )
-                }
-
-                Spacer(Modifier.width(12.dp))
-
-                Column {
-                    Text(
-                        text = "Notes",
-                        fontSize = 30.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = dark
-                    )
-                    Text(
-                        text = "Choisis entre note vocale et note textuelle",
-                        color = gray
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(14.dp))
-
-            Row(
+            OutlinedTextField(
+                value = title,
+                onValueChange = { title = it },
+                label = { Text("Titre") },
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                FilterChip(
-                    selected = mode == NoteMode.VOICE,
-                    onClick = { mode = NoteMode.VOICE },
-                    label = { Text("Vocale") },
-                    leadingIcon = {
-                        Icon(
-                            Icons.Outlined.Mic,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = purple,
-                        selectedLabelColor = Color.White,
-                        selectedLeadingIconColor = Color.White
-                    )
-                )
+                singleLine = true
+            )
 
-                FilterChip(
-                    selected = mode == NoteMode.TEXT,
-                    onClick = { mode = NoteMode.TEXT },
-                    label = { Text("Textuelle") },
-                    leadingIcon = {
-                        Icon(
-                            Icons.Outlined.EditNote,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = purple,
-                        selectedLabelColor = Color.White,
-                        selectedLeadingIconColor = Color.White
+            Spacer(Modifier.height(12.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    onClick = { mode = NoteMode.Text },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (mode == NoteMode.Text) dark else Color.White,
+                        contentColor = if (mode == NoteMode.Text) Color.White else dark
                     )
-                )
+                ) {
+                    Text("Texte")
+                }
+                Button(
+                    onClick = { mode = NoteMode.Voice },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (mode == NoteMode.Voice) Color(0xFF2563EB) else Color.White,
+                        contentColor = if (mode == NoteMode.Voice) Color.White else dark
+                    )
+                ) {
+                    Text("Vocal")
+                }
             }
 
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(12.dp))
+            if (mode == NoteMode.Text) {
+                OutlinedTextField(
+                    value = textContent,
+                    onValueChange = { textContent = it },
+                    label = { Text("Contenu") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 4
+                )
 
-            if (mode == NoteMode.VOICE) {
-                VoiceNotesContent(
-                    uiState = uiState,
-                    onRecordToggle = {
-                        if (!uiState.isRecording) {
-                            val granted = ContextCompat.checkSelfPermission(
-                                context,
-                                Manifest.permission.RECORD_AUDIO
-                            ) == PackageManager.PERMISSION_GRANTED
+                Spacer(Modifier.height(10.dp))
+                Button(
+                    onClick = {
+                        if (token.isNullOrBlank()) {
+                            scope.launch { snackbarHostState.showSnackbar("Connectez-vous pour enregistrer une note.") }
+                            return@Button
+                        }
+                        if (title.isBlank() || textContent.isBlank()) {
+                            scope.launch { snackbarHostState.showSnackbar("Titre et contenu obligatoires.") }
+                            return@Button
+                        }
+                        scope.launch {
+                            when (val result = BackendApi.createNote(token, title.trim(), textContent.trim())) {
+                                is ApiResult.Success -> {
+                                    title = ""
+                                    textContent = ""
+                                    loadNotes()
+                                    snackbarHostState.showSnackbar("Note enregistrée")
+                                }
 
-                            if (granted) {
-                                currentRecordingFile = recorder.startRecording()
-                                uiState = uiState.copy(isRecording = true)
-                            } else {
-                                audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                                is ApiResult.Failure -> {
+                                    if (result.unauthorized) onUnauthorized() else snackbarHostState.showSnackbar(result.message)
+                                }
                             }
-                        } else {
-                            stopRecordingSafely()
                         }
                     },
-                    voiceNotes = voiceNotes,
-                    player = player,
-                    onDeleteVoice = { note ->
-                        if (player.isPlaying(File(note.filePath))) {
-                            player.stop()
-                        }
-
-                        val deleted = notesController.deleteVoiceNote(note)
-                        reloadAll()
-
-                        scope.launch {
-                            snackbarHostState.showSnackbar(
-                                if (deleted) "Note vocale supprimée"
-                                else "Impossible de supprimer la note"
-                            )
-                        }
-                    }
-                )
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Ajouter la note")
+                }
             } else {
-                TextNotesContent(
-                    uiState = uiState,
-                    onTitleChange = { uiState = uiState.copy(title = it) },
-                    onContentChange = { uiState = uiState.copy(content = it) },
-                    textNotes = textNotes,
-                    onSaveText = {
-                        val saved = notesController.saveTextNote(
-                            title = uiState.title,
-                            content = uiState.content
-                        )
-
-                        if (saved) {
-                            uiState = uiState.copy(title = "", content = "")
-                            reloadAll()
-                        }
-
-                        scope.launch {
-                            snackbarHostState.showSnackbar(
-                                if (saved) "Note textuelle enregistrée ✅"
-                                else "Remplis le titre et le contenu."
-                            )
-                        }
-                    },
-                    onDeleteText = { note ->
-                        val deleted = notesController.deleteTextNote(note)
-                        reloadAll()
-
-                        scope.launch {
-                            snackbarHostState.showSnackbar(
-                                if (deleted) "Note textuelle supprimée"
-                                else "Impossible de supprimer la note"
-                            )
-                        }
-                    }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun VoiceNotesContent(
-    uiState: NotesUiState,
-    onRecordToggle: () -> Unit,
-    voiceNotes: List<VoiceNote>,
-    player: VoiceMemoPlayer,
-    onDeleteVoice: (VoiceNote) -> Unit
-) {
-    val card = Color(0xFFF7FAFF)
-    val dark = Color(0xFF0B1220)
-    val purple = Color(0xFF6D41FF)
-
-    Column(modifier = Modifier.fillMaxSize()) {
-        val shape = RoundedCornerShape(22.dp)
-
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .shadow(12.dp, shape, clip = false),
-            shape = shape,
-            color = card
-        ) {
-            Column(Modifier.padding(16.dp)) {
-                Text(
-                    text = "Enregistrement vocal",
-                    fontWeight = FontWeight.ExtraBold,
-                    color = dark
+                OutlinedTextField(
+                    value = voiceDescription,
+                    onValueChange = { voiceDescription = it },
+                    label = { Text("Contenu (optionnel)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 2
                 )
 
                 Spacer(Modifier.height(10.dp))
 
+                if (!hasAudioPermission) {
+                    Text(
+                        "Autorisez l'accès au micro pour créer un mémo vocal.",
+                        color = Color(0xFFB91C1C),
+                        fontSize = 12.sp
+                    )
+                    Spacer(Modifier.height(4.dp))
+                }
+
                 Button(
-                    onClick = onRecordToggle,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(54.dp),
-                    shape = RoundedCornerShape(18.dp),
+                    onClick = {
+                        if (isRecording) stopRecording() else startRecording()
+                    },
+                    modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (uiState.isRecording) Color(0xFFEF4444) else purple,
+                        containerColor = if (isRecording) Color(0xFFDC2626) else Color(0xFF2563EB),
                         contentColor = Color.White
                     )
                 ) {
                     Icon(
-                        imageVector = if (uiState.isRecording) Icons.Outlined.Stop else Icons.Outlined.Mic,
+                        imageVector = if (isRecording) Icons.Filled.MicNone else Icons.Filled.Mic,
                         contentDescription = null
                     )
-                    Spacer(Modifier.width(10.dp))
-                    Text(
-                        text = if (uiState.isRecording) "Stop" else "Enregistrer",
-                        fontWeight = FontWeight.Bold
-                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(if (isRecording) "Arrêter l'enregistrement" else "Enregistrer un mémo vocal")
                 }
 
-                if (uiState.isRecording) {
-                    Spacer(Modifier.height(10.dp))
-                    Text(
-                        text = "● Enregistrement en cours…",
-                        color = Color(0xFFEF4444),
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-            }
-        }
-
-        Spacer(Modifier.height(12.dp))
-
-        Text(
-            text = "Mes notes vocales",
-            fontWeight = FontWeight.ExtraBold,
-            color = dark,
-            fontSize = 18.sp
-        )
-
-        Spacer(Modifier.height(8.dp))
-
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 22.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            items(voiceNotes, key = { it.id }) { note ->
-                VoiceNoteRow(
-                    note = note,
-                    isPlaying = player.isPlaying(File(note.filePath)),
-                    onPlay = {
-                        player.play(File(note.filePath)) {}
-                    },
-                    onStop = { player.stop() },
-                    onDelete = { onDeleteVoice(note) }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun TextNotesContent(
-    uiState: NotesUiState,
-    onTitleChange: (String) -> Unit,
-    onContentChange: (String) -> Unit,
-    textNotes: List<TextNote>,
-    onSaveText: () -> Unit,
-    onDeleteText: (TextNote) -> Unit
-) {
-    val card = Color(0xFFF7FAFF)
-    val dark = Color(0xFF0B1220)
-    val purple = Color(0xFF6D41FF)
-
-    Column(modifier = Modifier.fillMaxSize()) {
-        val shape = RoundedCornerShape(22.dp)
-
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .shadow(12.dp, shape, clip = false),
-            shape = shape,
-            color = card
-        ) {
-            Column(Modifier.padding(16.dp)) {
+                Spacer(Modifier.height(6.dp))
                 Text(
-                    text = "Nouvelle note textuelle",
-                    fontWeight = FontWeight.ExtraBold,
-                    color = dark
+                    text = when {
+                        isRecording -> "Enregistrement en cours..."
+                        recordedFile != null -> "Enregistrement prêt : ${recordedFile?.name}"
+                        else -> "Appuyez sur 'Enregistrer un mémo vocal' pour démarrer."
+                    },
+                    fontSize = 12.sp,
+                    color = Color(0xFF4B5563)
                 )
+
+                if (recordedFile != null) {
+                    Spacer(Modifier.height(6.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        IconButton(onClick = ::toggleLocalPlayback) {
+                            Icon(
+                                imageVector = if (isLocalPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                                contentDescription = null
+                            )
+                        }
+                        Text(
+                            if (isLocalPlaying) "Pause" else "Lire l'enregistrement",
+                            color = Color(0xFF2563EB)
+                        )
+                        if (isLocalPreparing) {
+                            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                        }
+                    }
+                }
 
                 Spacer(Modifier.height(10.dp))
-
-                OutlinedTextField(
-                    value = uiState.title,
-                    onValueChange = onTitleChange,
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Titre") },
-                    singleLine = true,
-                    shape = RoundedCornerShape(16.dp)
-                )
-
-                Spacer(Modifier.height(10.dp))
-
-                OutlinedTextField(
-                    value = uiState.content,
-                    onValueChange = onContentChange,
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Contenu") },
-                    minLines = 4,
-                    shape = RoundedCornerShape(16.dp)
-                )
-
-                Spacer(Modifier.height(12.dp))
 
                 Button(
-                    onClick = onSaveText,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = purple,
-                        contentColor = Color.White
-                    )
+                    onClick = {
+                        if (token.isNullOrBlank()) {
+                            scope.launch { snackbarHostState.showSnackbar("Connectez-vous pour ajouter un mémo vocal.") }
+                            return@Button
+                        }
+                        if (title.isBlank()) {
+                            scope.launch { snackbarHostState.showSnackbar("Un titre est requis pour le mémo vocal.") }
+                            return@Button
+                        }
+                        val file = recordedFile
+                        if (file == null) {
+                            scope.launch { snackbarHostState.showSnackbar("Enregistrement requis pour le mémo vocal.") }
+                            return@Button
+                        }
+                        scope.launch {
+                            isUploadingVoice = true
+                            when (val result = BackendApi.createVoiceNote(
+                                token,
+                                title.trim(),
+                                voiceDescription.trim().takeIf { it.isNotBlank() },
+                                file.absolutePath
+                            )) {
+                                is ApiResult.Success -> {
+                                    title = ""
+                                    voiceDescription = ""
+                                    recordedFile = null
+                                    isLocalPlaying = false
+                                    file.delete()
+                                    loadNotes()
+                                    snackbarHostState.showSnackbar("Mémo vocal enregistré")
+                                }
+
+                                is ApiResult.Failure -> {
+                                    if (result.unauthorized) onUnauthorized() else snackbarHostState.showSnackbar(result.message)
+                                }
+                            }
+                            isUploadingVoice = false
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isUploadingVoice && recordedFile != null && title.isNotBlank()
                 ) {
-                    Icon(Icons.Outlined.Save, contentDescription = null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("Sauvegarder", fontWeight = FontWeight.Bold)
+                    if (isUploadingVoice) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = Color.White)
+                        Spacer(Modifier.width(6.dp))
+                    }
+                    Text("Ajouter le mémo vocal")
+                }
+            }
+
+            Spacer(Modifier.height(14.dp))
+
+            if (loading) {
+                CircularProgressIndicator()
+            } else {
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    items(notes, key = { it.id }) { note ->
+                        NoteRow(note = note, onDelete = {
+                            val noteId = note.id.toIntOrNull() ?: return@NoteRow
+                            scope.launch {
+                                when (val result = BackendApi.deleteNote(token.orEmpty(), noteId)) {
+                                    is ApiResult.Success -> loadNotes()
+                                    is ApiResult.Failure -> {
+                                        if (result.unauthorized) onUnauthorized() else snackbarHostState.showSnackbar(result.message)
+                                    }
+                                }
+                            }
+                        })
+                    }
                 }
             }
         }
-
-        Spacer(Modifier.height(12.dp))
-
-        Text(
-            text = "Mes notes textuelles",
-            fontWeight = FontWeight.ExtraBold,
-            color = dark,
-            fontSize = 18.sp
-        )
-
-        Spacer(Modifier.height(8.dp))
-
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 22.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            items(textNotes, key = { it.id }) { note ->
-                TextNoteRow(
-                    note = note,
-                    onDelete = { onDeleteText(note) }
-                )
-            }
-        }
     }
 }
 
 @Composable
-private fun VoiceNoteRow(
-    note: VoiceNote,
-    isPlaying: Boolean,
-    onPlay: () -> Unit,
-    onStop: () -> Unit,
+private fun NoteRow(
+    note: NoteItem,
     onDelete: () -> Unit
 ) {
-    val shape = RoundedCornerShape(18.dp)
-    val dark = Color(0xFF0B1220)
-    val gray = Color(0xFF6B7280)
+    val context = LocalContext.current
+    val remotePlayer = remember { MediaPlayer() }
+    var isRemotePlaying by remember { mutableStateOf(false) }
+    var isRemoteLoading by remember { mutableStateOf(false) }
 
-    val df = remember { SimpleDateFormat("dd/MM • HH:mm", Locale.getDefault()) }
-
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(8.dp, shape, clip = false),
-        shape = shape,
-        color = Color.White
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text("Note vocale", fontWeight = FontWeight.ExtraBold, color = dark)
-                Text(df.format(Date(note.createdAt)), color = gray, fontSize = 13.sp)
-            }
-
-            OutlinedButton(
-                onClick = { if (isPlaying) onStop() else onPlay() },
-                shape = RoundedCornerShape(14.dp)
-            ) {
-                Icon(
-                    imageVector = if (isPlaying) Icons.Outlined.Stop else Icons.Outlined.PlayArrow,
-                    contentDescription = null,
-                    tint = Color(0xFF5B55FF)
-                )
-                Spacer(Modifier.width(6.dp))
-                Text(if (isPlaying) "Stop" else "Lire")
-            }
-
-            Spacer(Modifier.width(8.dp))
-
-            IconButton(onClick = onDelete) {
-                Icon(
-                    imageVector = Icons.Outlined.Delete,
-                    contentDescription = "Supprimer",
-                    tint = Color(0xFFEF4444)
-                )
-            }
+    DisposableEffect(Unit) {
+        remotePlayer.setOnCompletionListener { isRemotePlaying = false }
+        remotePlayer.setOnErrorListener { _, _, _ ->
+            isRemotePlaying = false
+            isRemoteLoading = false
+            true
+        }
+        onDispose {
+            remotePlayer.reset()
+            remotePlayer.release()
         }
     }
-}
 
-@Composable
-private fun TextNoteRow(
-    note: TextNote,
-    onDelete: () -> Unit
-) {
-    val shape = RoundedCornerShape(18.dp)
-    val dark = Color(0xFF0B1220)
-    val gray = Color(0xFF6B7280)
-
-    val preview = if (note.content.length > 90) {
-        note.content.take(90) + "..."
-    } else {
-        note.content
-    }
-
-    val dateText = remember(note.createdAt) {
-        SimpleDateFormat("dd/MM • HH:mm", Locale.getDefault()).format(Date(note.createdAt))
+    fun toggleRemotePlayback() {
+        val url = note.audioUrl ?: return
+        if (isRemotePlaying) {
+            remotePlayer.pause()
+            isRemotePlaying = false
+            return
+        }
+        try {
+            isRemoteLoading = true
+            remotePlayer.reset()
+            remotePlayer.setDataSource(context, Uri.parse(url))
+            remotePlayer.setOnPreparedListener { player ->
+                player.start()
+                isRemotePlaying = true
+                isRemoteLoading = false
+            }
+            remotePlayer.prepareAsync()
+        } catch (_: Exception) {
+            isRemoteLoading = false
+        }
     }
 
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .shadow(8.dp, shape, clip = false),
-        shape = shape,
+            .shadow(8.dp, RoundedCornerShape(16.dp), clip = false),
+        shape = RoundedCornerShape(16.dp),
         color = Color.White
     ) {
         Row(
@@ -620,33 +526,51 @@ private fun TextNoteRow(
                 .padding(14.dp),
             verticalAlignment = Alignment.Top
         ) {
-            Column(Modifier.weight(1f)) {
-                Text(
-                    text = note.title,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = dark
-                )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(note.title, fontWeight = FontWeight.ExtraBold, color = Color(0xFF0B1220))
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = dateText,
-                    color = gray,
-                    fontSize = 13.sp
+                    if (note.content.isBlank()) {
+                        if (note.noteType == "voice") "Mémo vocal" else ""
+                    } else {
+                        note.content
+                    },
+                    color = Color(0xFF374151),
+                    maxLines = 4,
+                    overflow = TextOverflow.Ellipsis
                 )
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text = preview,
-                    color = dark,
-                    fontSize = 14.sp
-                )
+                Spacer(Modifier.height(6.dp))
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        if (note.noteType == "voice") "Mémo vocal" else "Note texte",
+                        color = Color(0xFF2563EB),
+                        fontSize = 12.sp
+                    )
+                    if (note.audioUrl != null) {
+                        IconButton(onClick = ::toggleRemotePlayback, enabled = !isRemoteLoading) {
+                            Icon(
+                                imageVector = if (isRemotePlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                                contentDescription = null
+                            )
+                        }
+                        if (isRemoteLoading) {
+                            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                        }
+                        Text("Lire", color = Color(0xFF2563EB), fontSize = 12.sp)
+                    }
+                }
             }
-
             IconButton(onClick = onDelete) {
-                Icon(
-                    imageVector = Icons.Outlined.Delete,
-                    contentDescription = "Supprimer",
-                    tint = Color(0xFFEF4444)
-                )
+                Icon(Icons.Outlined.Delete, contentDescription = "Supprimer", tint = Color(0xFFEF4444))
             }
         }
+    }
+}
+
+private fun parseIsoMillis(value: String): Long {
+    return try {
+        OffsetDateTime.parse(value).toInstant().toEpochMilli()
+    } catch (_: DateTimeParseException) {
+        System.currentTimeMillis()
     }
 }

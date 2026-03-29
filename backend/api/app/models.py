@@ -1,4 +1,4 @@
-from sqlalchemy import Float, ForeignKey, Integer, String
+from sqlalchemy import Boolean, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -47,3 +47,50 @@ class UserBadge(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     badge_id: Mapped[int] = mapped_column(ForeignKey("badges.id"), index=True)
     unlocked_at: Mapped[str] = mapped_column(String)
+
+
+class Note(Base):
+    __tablename__ = "notes"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    note_type: Mapped[str] = mapped_column(String, default="text")
+    title: Mapped[str] = mapped_column(String)
+    content: Mapped[str] = mapped_column(String)
+    audio_path: Mapped[str | None] = mapped_column(String, nullable=True)
+    created_at: Mapped[str] = mapped_column(String)
+    updated_at: Mapped[str] = mapped_column(String)
+
+
+class Advice(Base):
+    __tablename__ = "advices"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    title: Mapped[str] = mapped_column(String)
+    description: Mapped[str] = mapped_column(String)
+    category: Mapped[str] = mapped_column(String, index=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+
+class AdviceRule(Base):
+    __tablename__ = "advice_rules"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    advice_id: Mapped[int] = mapped_column(ForeignKey("advices.id"), index=True)
+    priority: Mapped[int] = mapped_column(Integer, default=100)
+    min_success_percent: Mapped[float | None] = mapped_column(Float, nullable=True)
+    max_success_percent: Mapped[float | None] = mapped_column(Float, nullable=True)
+    min_attendance: Mapped[float | None] = mapped_column(Float, nullable=True)
+    max_attendance: Mapped[float | None] = mapped_column(Float, nullable=True)
+    min_sleep_hours: Mapped[float | None] = mapped_column(Float, nullable=True)
+    max_sleep_hours: Mapped[float | None] = mapped_column(Float, nullable=True)
+    min_exercises_done: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    max_exercises_done: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
+
+class PredictionAdvice(Base):
+    __tablename__ = "prediction_advices"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    prediction_id: Mapped[int] = mapped_column(ForeignKey("predictions.id"), index=True)
+    advice_id: Mapped[int] = mapped_column(ForeignKey("advices.id"), index=True)

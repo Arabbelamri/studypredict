@@ -22,6 +22,9 @@ class ResultController {
             attendancePercent = input.attendancePercent,
             exercisesPerMonth = input.exercisesPerMonth,
             sleepHours = input.sleepHours,
+            previousScores = input.previousScores,
+            tutoringSessions = input.tutoringSessions,
+            physicalActivityHours = input.physicalActivityHours,
             focusLevel = input.focusLevel
         )
 
@@ -37,6 +40,10 @@ class ResultController {
             attendancePercent = input.attendancePercent,
             exercisesPerMonth = input.exercisesPerMonth,
             sleepHours = input.sleepHours,
+            previousScores = input.previousScores,
+            tutoringSessions = input.tutoringSessions,
+            physicalActivityHours = input.physicalActivityHours,
+            extracurricularActivities = input.extracurricularActivities,
             badges = computeBadges(
                 score = score,
                 attendancePercent = input.attendancePercent,
@@ -49,6 +56,9 @@ class ResultController {
                 attendancePercent = input.attendancePercent,
                 exercisesPerMonth = input.exercisesPerMonth,
                 sleepHours = input.sleepHours,
+                previousScores = input.previousScores,
+                tutoringSessions = input.tutoringSessions,
+                physicalActivityHours = input.physicalActivityHours,
                 focusLevel = input.focusLevel
             )
         )
@@ -59,17 +69,30 @@ class ResultController {
         attendancePercent: Int,
         exercisesPerMonth: Int,
         sleepHours: Int,
+        previousScores: Int,
+        tutoringSessions: Int,
+        physicalActivityHours: Int,
         focusLevel: Int
     ): Int {
-        val studyScore = (hoursPerWeek.coerceIn(0, 35) / 35f) * 25f
-        val attendanceScore = (attendancePercent.coerceIn(0, 100) / 100f) * 25f
-        val exerciseScore = (exercisesPerMonth.coerceIn(0, 30) / 30f) * 20f
-        val sleepScore = (sleepHours.coerceIn(0, 10) / 10f) * 15f
-        val focusScore = (focusLevel.coerceIn(0, 10) / 10f) * 15f
+        val studyScore = (hoursPerWeek.coerceIn(0, 60) / 60f) * 15f
+        val attendanceScore = (attendancePercent.coerceIn(0, 100) / 100f) * 15f
+        val exerciseScore = (exercisesPerMonth.coerceIn(0, 120) / 120f) * 12f
+        val sleepScore = (sleepHours.coerceIn(0, 12) / 12f) * 12f
+        val previousScorePart = (previousScores.coerceIn(0, 100) / 100f) * 18f
+        val tutoringPart = (tutoringSessions.coerceIn(0, 60) / 60f) * 10f
+        val physicalPart = (physicalActivityHours.coerceIn(0, 30) / 30f) * 8f
+        val focusScore = (focusLevel.coerceIn(0, 10) / 10f) * 10f
 
-        return (studyScore + attendanceScore + exerciseScore + sleepScore + focusScore)
-            .toInt()
-            .coerceIn(0, 100)
+        return (
+            studyScore +
+                attendanceScore +
+                exerciseScore +
+                sleepScore +
+                previousScorePart +
+                tutoringPart +
+                physicalPart +
+                focusScore
+            ).toInt().coerceIn(0, 100)
     }
 
     fun computeGrade(score: Int): String {
@@ -91,13 +114,10 @@ class ResultController {
 
         if (score >= 70) badges += "Bon potentiel"
         if (attendancePercent >= 85) badges += "Assidu"
-        if (sleepHours >= 7) badges += "Équilibré"
-        if (exercisesPerMonth >= 12) badges += "Régulier"
+        if (sleepHours >= 7) badges += "Equilibre"
+        if (exercisesPerMonth >= 12) badges += "Regulier"
 
-        if (badges.isEmpty()) {
-            badges += "En progression"
-        }
-
+        if (badges.isEmpty()) badges += "En progression"
         return badges
     }
 
@@ -107,38 +127,51 @@ class ResultController {
         attendancePercent: Int,
         exercisesPerMonth: Int,
         sleepHours: Int,
+        previousScores: Int,
+        tutoringSessions: Int,
+        physicalActivityHours: Int,
         focusLevel: Int
     ): String {
         return when {
             hoursPerWeek < 15 ->
                 "Augmente tes heures de travail hebdomadaire pour consolider tes acquis."
             attendancePercent < 75 ->
-                "Améliore ta présence en cours : elle impacte directement ta progression."
+                "Ameliore ta presence en cours, elle impacte directement ta progression."
             exercisesPerMonth < 8 ->
-                "Fais plus d’exercices pratiques chaque mois pour mieux retenir."
+                "Fais plus d'exercices pratiques chaque mois pour mieux retenir."
             sleepHours < 7 ->
                 "Ton sommeil est trop faible. Essaie de viser au moins 7 heures par nuit."
+            previousScores < 60 ->
+                "Reprends les bases des chapitres precedents pour renforcer ton niveau global."
+            tutoringSessions < 2 ->
+                "Ajoute des sessions de tutorat pour corriger plus vite tes blocages."
+            physicalActivityHours < 2 ->
+                "Ajoute un peu d'activite physique chaque semaine pour garder une bonne energie."
             focusLevel < 5 ->
                 "Travaille ta concentration avec des sessions courtes et sans distractions."
             score >= 75 ->
-                "Tu es sur une bonne dynamique. Reste régulier et continue tes efforts."
+                "Tu es sur une bonne dynamique. Reste regulier et continue tes efforts."
             else ->
-                "Tu peux progresser rapidement avec plus de régularité et un meilleur équilibre."
+                "Tu peux progresser rapidement avec plus de regularite et un meilleur equilibre."
         }
     }
 
     fun buildExportText(result: AnalysisResult): String {
         return """
-StudyPredict - Résultats
+StudyPredict - Resultats
 
 Score: ${result.scorePercent}%
 Grade: ${result.grade}
 
-Détails:
+Details:
 - Travail: ${result.hoursPerWeek}h/semaine
-- Présence: ${result.attendancePercent}%
+- Presence: ${result.attendancePercent}%
 - Exercices: ${result.exercisesPerMonth}/mois
 - Sommeil: ${result.sleepHours}h/nuit
+- Score precedent: ${result.previousScores}%
+- Tutorat: ${result.tutoringSessions} session(s)
+- Activite physique: ${result.physicalActivityHours}h/semaine
+- Activites extrascolaires: ${if (result.extracurricularActivities) "Oui" else "Non"}
 
 Badges: ${result.badges.joinToString(", ")}
 
@@ -148,7 +181,7 @@ ${result.advice}
     }
 
     fun saveToHistory(result: AnalysisResult) {
-        val sdf = SimpleDateFormat("d MMM yyyy 'à' HH:mm", Locale.FRENCH)
+        val sdf = SimpleDateFormat("d MMM yyyy 'a' HH:mm", Locale.FRENCH)
         val dateLabel = sdf.format(Date())
 
         HistoryStore.add(
@@ -158,7 +191,9 @@ ${result.advice}
                 grade = result.grade,
                 dateLabel = dateLabel,
                 hoursPerWeek = result.hoursPerWeek,
-                attendancePercent = result.attendancePercent
+                attendancePercent = result.attendancePercent,
+                exercisesPerMonth = result.exercisesPerMonth,
+                sleepHours = result.sleepHours
             )
         )
     }
@@ -172,8 +207,8 @@ ${result.advice}
 
         try {
             context.startActivity(intent)
-        } catch (e: ActivityNotFoundException) {
-            Toast.makeText(context, "WhatsApp n'est pas installé", Toast.LENGTH_SHORT).show()
+        } catch (_: ActivityNotFoundException) {
+            Toast.makeText(context, "WhatsApp n'est pas installe", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -186,8 +221,8 @@ ${result.advice}
 
         try {
             context.startActivity(Intent.createChooser(intent, "Envoyer un email"))
-        } catch (e: ActivityNotFoundException) {
-            Toast.makeText(context, "Aucune app email trouvée", Toast.LENGTH_SHORT).show()
+        } catch (_: ActivityNotFoundException) {
+            Toast.makeText(context, "Aucune app email trouvee", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -196,7 +231,7 @@ ${result.advice}
 
         try {
             context.startActivity(intent)
-        } catch (e: ActivityNotFoundException) {
+        } catch (_: ActivityNotFoundException) {
             Toast.makeText(context, "Impossible d'ouvrir le navigateur", Toast.LENGTH_SHORT).show()
         }
     }

@@ -1,7 +1,7 @@
 services:
   api:
     build:
-      context: ./studypredict-main_App
+      context: .
       dockerfile: backend/api/Dockerfile
     container_name: student-success-api
     environment:
@@ -17,4 +17,4 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - ./studypredict-main_App/backend/api/AppliMobile.db:/app/AppliMobile.db
+      - ./backend/api/AppliMobile.db:/app/AppliMobile.db

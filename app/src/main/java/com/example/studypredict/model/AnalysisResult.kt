@@ -7,6 +7,10 @@ data class AnalysisResult(
     val attendancePercent: Int,
     val exercisesPerMonth: Int,
     val sleepHours: Int,
+    val previousScores: Int,
+    val tutoringSessions: Int,
+    val physicalActivityHours: Int,
+    val extracurricularActivities: Boolean,
     val badges: List<String>,
     val advice: String
 )

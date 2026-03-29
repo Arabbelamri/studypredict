@@ -1,6 +1,11 @@
 from datetime import UTC, datetime
+import mimetypes
+import shutil
+from pathlib import Path
+from uuid import uuid4
 
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile, status
+from fastapi.responses import FileResponse
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -8,11 +13,24 @@ from .config import settings
 from .database import engine
 from .dependencies import get_current_user, get_db
 from .ml_client import predict_success
-from .models import Badge, Base, Prediction, User, UserBadge
+from .models import (
+    Advice,
+    AdviceRule,
+    Badge,
+    Base,
+    Note,
+    Prediction,
+    PredictionAdvice,
+    User,
+    UserBadge,
+)
 from .schemas import (
+    AdviceItem,
     HealthResponse,
     LoginRequest,
     LogoutRequest,
+    NoteCreateRequest,
+    NoteItem,
     PredictionHistoryItem,
     PredictSuccessRequest,
     PredictSuccessResponse,
@@ -63,6 +81,77 @@ BADGE_DEFINITIONS = [
     ("En progression", "Continuer les efforts meme sans seuil debloque."),
 ]
 
+ADVICE_DEFINITIONS = [
+    (
+        "Sommeil en priorité",
+        "Vous dormez peu. Essayez d'atteindre 7h minimum pour mieux mémoriser.",
+        "sleep",
+        {
+            "max_sleep_hours": 6.5,
+            "priority": 10,
+        },
+    ),
+    (
+        "Améliorez votre assiduité",
+        "Votre présence est faible. Visez au moins 85% pour progresser plus vite.",
+        "attendance",
+        {
+            "max_attendance": 74.99,
+            "priority": 20,
+        },
+    ),
+    (
+        "Pratiquez davantage",
+        "Le nombre d'exercices est faible. Faites des sessions régulières chaque semaine.",
+        "practice",
+        {
+            "max_exercises_done": 7,
+            "priority": 30,
+        },
+    ),
+    (
+        "Consolider les bases",
+        "Le score prédit est encore fragile. Renforcez les fondamentaux sur 2 semaines.",
+        "score",
+        {
+            "max_success_percent": 59.99,
+            "priority": 40,
+        },
+    ),
+    (
+        "Bon rythme à maintenir",
+        "Vos indicateurs sont bons. Continuez avec une routine stable.",
+        "consistency",
+        {
+            "min_success_percent": 60,
+            "min_sleep_hours": 7,
+            "min_attendance": 80,
+            "min_exercises_done": 8,
+            "priority": 50,
+        },
+    ),
+    (
+        "Excellent profil",
+        "Très bon potentiel. Maintenez cette discipline et ajoutez des objectifs avancés.",
+        "excellence",
+        {
+            "min_success_percent": 80,
+            "min_sleep_hours": 7,
+            "min_attendance": 85,
+            "min_exercises_done": 12,
+            "priority": 5,
+        },
+    ),
+    (
+        "Conseil général",
+        "Restez régulier: planification hebdomadaire, sommeil stable, et entraînement actif.",
+        "general",
+        {
+            "priority": 999,
+        },
+    ),
+]
+
 
 def _parse_optional_datetime(value: str | None) -> datetime | None:
     if not value:
@@ -72,6 +161,24 @@ def _parse_optional_datetime(value: str | None) -> datetime | None:
         return parsed if parsed.tzinfo else parsed.replace(tzinfo=UTC)
     except ValueError:
         return None
+
+
+def _note_audio_url(note: Note, request: Request | None) -> str | None:
+    if not note.audio_path or request is None:
+        return None
+    return request.url_for("download_voice_note", note_id=note.id)
+
+
+def _to_note_item(note: Note, request: Request | None) -> NoteItem:
+    return NoteItem(
+        id=note.id,
+        note_type=note.note_type,
+        title=note.title,
+        content=note.content,
+        audio_url=_note_audio_url(note, request),
+        created_at=_parse_created_at(note.created_at),
+        updated_at=_parse_created_at(note.updated_at),
+    )
 
 
 def _ensure_badges_catalog(db: Session) -> dict[str, Badge]:
@@ -112,6 +219,146 @@ def _compute_prediction_badges(
     if not badges:
         badges.append("En progression")
     return badges
+
+
+def _ensure_advice_catalog(db: Session) -> tuple[dict[str, Advice], list[AdviceRule]]:
+    catalog: dict[str, Advice] = {}
+    for advice in db.query(Advice).all():
+        catalog[advice.title] = advice
+
+    next_advice_id = (db.query(func.max(Advice.id)).scalar() or 0) + 1
+    next_rule_id = (db.query(func.max(AdviceRule.id)).scalar() or 0) + 1
+
+    for title, description, category, _conditions in ADVICE_DEFINITIONS:
+        advice = catalog.get(title)
+        if advice is None:
+            advice = Advice(
+                id=next_advice_id,
+                title=title,
+                description=description,
+                category=category,
+                is_active=True,
+            )
+            db.add(advice)
+            db.flush()
+            catalog[title] = advice
+            next_advice_id += 1
+
+    existing_rules = db.query(AdviceRule).all()
+    if not existing_rules:
+        for title, _description, _category, conditions in ADVICE_DEFINITIONS:
+            advice = catalog[title]
+            db.add(
+                AdviceRule(
+                    id=next_rule_id,
+                    advice_id=advice.id,
+                    priority=int(conditions.get("priority", 100)),
+                    min_success_percent=conditions.get("min_success_percent"),
+                    max_success_percent=conditions.get("max_success_percent"),
+                    min_attendance=conditions.get("min_attendance"),
+                    max_attendance=conditions.get("max_attendance"),
+                    min_sleep_hours=conditions.get("min_sleep_hours"),
+                    max_sleep_hours=conditions.get("max_sleep_hours"),
+                    min_exercises_done=conditions.get("min_exercises_done"),
+                    max_exercises_done=conditions.get("max_exercises_done"),
+                )
+            )
+            next_rule_id += 1
+        db.flush()
+        existing_rules = db.query(AdviceRule).all()
+
+    return catalog, existing_rules
+
+
+def _matches_rule(
+    *,
+    rule: AdviceRule,
+    success_percent: float,
+    attendance: float,
+    sleep_hours: float,
+    exercises_done: int,
+) -> bool:
+    if rule.min_success_percent is not None and success_percent < rule.min_success_percent:
+        return False
+    if rule.max_success_percent is not None and success_percent > rule.max_success_percent:
+        return False
+    if rule.min_attendance is not None and attendance < rule.min_attendance:
+        return False
+    if rule.max_attendance is not None and attendance > rule.max_attendance:
+        return False
+    if rule.min_sleep_hours is not None and sleep_hours < rule.min_sleep_hours:
+        return False
+    if rule.max_sleep_hours is not None and sleep_hours > rule.max_sleep_hours:
+        return False
+    if rule.min_exercises_done is not None and exercises_done < rule.min_exercises_done:
+        return False
+    if rule.max_exercises_done is not None and exercises_done > rule.max_exercises_done:
+        return False
+    return True
+
+
+def _compute_prediction_advices(
+    *,
+    rules: list[AdviceRule],
+    advice_catalog: dict[int, Advice],
+    success_percent: float,
+    attendance: float,
+    sleep_hours: float,
+    exercises_done: int,
+    max_items: int = 3,
+) -> list[Advice]:
+    matching = [
+        rule
+        for rule in rules
+        if _matches_rule(
+            rule=rule,
+            success_percent=success_percent,
+            attendance=attendance,
+            sleep_hours=sleep_hours,
+            exercises_done=exercises_done,
+        )
+    ]
+    ordered = sorted(matching, key=lambda rule: rule.priority)
+
+    selected: list[Advice] = []
+    seen_ids: set[int] = set()
+    for rule in ordered:
+        advice = advice_catalog.get(rule.advice_id)
+        if advice is None or not advice.is_active or advice.id in seen_ids:
+            continue
+        selected.append(advice)
+        seen_ids.add(advice.id)
+        if len(selected) >= max_items:
+            break
+    return selected
+
+
+def _persist_prediction_advices(
+    *,
+    db: Session,
+    prediction_id: int,
+    advices: list[Advice],
+) -> None:
+    for advice in advices:
+        exists = (
+            db.query(PredictionAdvice)
+            .filter(
+                PredictionAdvice.prediction_id == prediction_id,
+                PredictionAdvice.advice_id == advice.id,
+            )
+            .first()
+        )
+        if exists is None:
+            db.add(PredictionAdvice(prediction_id=prediction_id, advice_id=advice.id))
+
+
+def _to_advice_item(advice: Advice) -> AdviceItem:
+    return AdviceItem(
+        id=advice.id,
+        title=advice.title,
+        description=advice.description,
+        category=advice.category,
+    )
 
 
 def _award_user_badges(
@@ -241,12 +488,195 @@ async def list_predictions(
     return [
         PredictionHistoryItem(
             id=prediction.id,
+            user_id=prediction.user_id,
             predicted_score=prediction.predicted_score,
+            hours_studied=prediction.hours_studied,
+            attendance=prediction.attendance,
             grade=prediction.grade,
             created_at=_parse_created_at(prediction.created_at),
         )
         for prediction in predictions
     ]
+
+
+@app.get("/v1/notes/me", response_model=list[NoteItem], tags=["Notes"])
+async def list_my_notes(
+    request: Request,
+    current_user: UserPublic = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> list[NoteItem]:
+    notes = (
+        db.query(Note)
+        .filter(Note.user_id == int(current_user.id))
+        .order_by(Note.id.desc())
+        .all()
+    )
+    return [_to_note_item(note, request) for note in notes]
+
+
+@app.post("/v1/notes", response_model=NoteItem, status_code=status.HTTP_201_CREATED, tags=["Notes"])
+async def create_note(
+    request: Request,
+    payload: NoteCreateRequest,
+    current_user: UserPublic = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> NoteItem:
+    now_iso = datetime.now(UTC).isoformat()
+    note = Note(
+        user_id=int(current_user.id),
+        note_type=payload.note_type.strip().lower(),
+        title=payload.title.strip(),
+        content=payload.content.strip(),
+        created_at=now_iso,
+        updated_at=now_iso,
+    )
+    db.add(note)
+    db.commit()
+    db.refresh(note)
+
+    return _to_note_item(note, request)
+
+
+@app.post("/v1/notes/voice", response_model=NoteItem, status_code=status.HTTP_201_CREATED, tags=["Notes"])
+async def create_voice_note(
+    request: Request,
+    title: str = Form(..., min_length=1, max_length=120),
+    content: str | None = Form(default=None),
+    audio_file: UploadFile = File(...),
+    current_user: UserPublic = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> NoteItem:
+    if not audio_file.content_type or not audio_file.content_type.startswith("audio/"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": "INVALID_AUDIO_FILE", "message": "Le fichier doit être un audio valide."},
+        )
+
+    voice_dir = Path(settings.VOICE_NOTES_DIR)
+    voice_dir.mkdir(parents=True, exist_ok=True)
+    file_suffix = Path(audio_file.filename or "").suffix or ".m4a"
+    target_path = voice_dir / f"{uuid4().hex}{file_suffix}"
+
+    try:
+        with target_path.open("wb") as buffer:
+            shutil.copyfileobj(audio_file.file, buffer)
+    finally:
+        await audio_file.close()
+
+    now_iso = datetime.now(UTC).isoformat()
+    note = Note(
+        user_id=int(current_user.id),
+        note_type="voice",
+        title=title.strip(),
+        content=(content.strip() if content else ""),
+        audio_path=str(target_path.resolve()),
+        created_at=now_iso,
+        updated_at=now_iso,
+    )
+    db.add(note)
+    db.commit()
+    db.refresh(note)
+
+    return _to_note_item(note, request)
+
+
+@app.get(
+    "/v1/notes/{note_id}/audio",
+    response_class=FileResponse,
+    name="download_voice_note",
+    tags=["Notes"],
+)
+async def download_voice_note(
+    note_id: int,
+    current_user: UserPublic = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> FileResponse:
+    note = (
+        db.query(Note)
+        .filter(Note.id == note_id, Note.user_id == int(current_user.id))
+        .first()
+    )
+    if note is None or not note.audio_path:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "NOTE_NOT_FOUND", "message": "Note introuvable."},
+        )
+
+    audio_path = Path(note.audio_path)
+    if not audio_path.exists():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "AUDIO_UNAVAILABLE", "message": "Fichier audio introuvable."},
+        )
+
+    media_type, _ = mimetypes.guess_type(audio_path.name)
+    return FileResponse(
+        path=str(audio_path),
+        media_type=media_type or "application/octet-stream",
+        filename=audio_path.name,
+    )
+
+
+@app.delete("/v1/notes/{note_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Notes"])
+async def delete_note(
+    note_id: int,
+    current_user: UserPublic = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> None:
+    note = (
+        db.query(Note)
+        .filter(Note.id == note_id, Note.user_id == int(current_user.id))
+        .first()
+    )
+    if note is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "NOTE_NOT_FOUND", "message": "Note introuvable."},
+        )
+    db.delete(note)
+    db.commit()
+
+
+@app.get("/v1/tips/me/latest", response_model=list[AdviceItem], tags=["Tips"])
+async def list_latest_tips(
+    current_user: UserPublic = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> list[AdviceItem]:
+    latest_prediction = (
+        db.query(Prediction)
+        .filter(Prediction.user_id == int(current_user.id))
+        .order_by(Prediction.id.desc())
+        .first()
+    )
+    if latest_prediction is None:
+        return []
+
+    advice_rows = (
+        db.query(Advice)
+        .join(PredictionAdvice, PredictionAdvice.advice_id == Advice.id)
+        .filter(PredictionAdvice.prediction_id == latest_prediction.id)
+        .all()
+    )
+
+    if not advice_rows:
+        catalog_by_name, rules = _ensure_advice_catalog(db)
+        catalog_by_id = {advice.id: advice for advice in catalog_by_name.values()}
+        advice_rows = _compute_prediction_advices(
+            rules=rules,
+            advice_catalog=catalog_by_id,
+            success_percent=latest_prediction.predicted_score,
+            attendance=latest_prediction.attendance,
+            sleep_hours=latest_prediction.sleep_hours,
+            exercises_done=latest_prediction.tutoring_sessions,
+        )
+        _persist_prediction_advices(
+            db=db,
+            prediction_id=latest_prediction.id,
+            advices=advice_rows,
+        )
+        db.commit()
+
+    return [_to_advice_item(advice) for advice in advice_rows]
 
 
 @app.get("/v1/badges/me", response_model=list[UserBadgeItem], tags=["Badges"])
@@ -314,14 +744,30 @@ async def predict(
         extracurricular_activities=payload.extracurricular_activities,
     )
     catalog = _ensure_badges_catalog(db)
+    advice_catalog_by_name, advice_rules = _ensure_advice_catalog(db)
+    advice_catalog_by_id = {advice.id: advice for advice in advice_catalog_by_name.values()}
     unlocked_badges = _compute_prediction_badges(
         success_percent=prediction.success_percent,
         attendance=attendance,
         sleep_hours_avg=payload.sleep_hours_avg,
         exercises_done=payload.exercises_done,
     )
+    computed_advices = _compute_prediction_advices(
+        rules=advice_rules,
+        advice_catalog=advice_catalog_by_id,
+        success_percent=prediction.success_percent,
+        attendance=attendance,
+        sleep_hours=payload.sleep_hours_avg,
+        exercises_done=payload.exercises_done,
+    )
 
     db.add(record)
+    db.flush()
+    _persist_prediction_advices(
+        db=db,
+        prediction_id=record.id,
+        advices=computed_advices,
+    )
     _award_user_badges(
         db=db,
         user_id=int(current_user.id),
@@ -330,4 +776,9 @@ async def predict(
     )
     db.commit()
 
-    return prediction
+    return PredictSuccessResponse(
+        request_id=prediction.request_id,
+        model_version=prediction.model_version,
+        success_percent=prediction.success_percent,
+        tips=[_to_advice_item(advice) for advice in computed_advices],
+    )

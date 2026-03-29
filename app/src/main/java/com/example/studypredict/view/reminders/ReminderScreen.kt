@@ -1,6 +1,7 @@
 package com.example.studypredict.view.reminders
 
 import android.Manifest
+import android.app.AlarmManager
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -66,6 +67,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.core.app.NotificationManagerCompat
 import com.example.studypredict.controller.ReminderController
 import com.example.studypredict.controller.ReminderDataProvider
 import com.example.studypredict.model.ReminderItem
@@ -131,6 +133,22 @@ fun ReminderScreen(
         if (!granted) {
             notifPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
+    }
+
+    fun notificationsActuallyEnabled(): Boolean {
+        val appEnabled = NotificationManagerCompat.from(ctx).areNotificationsEnabled()
+        if (!appEnabled) return false
+        if (Build.VERSION.SDK_INT < 33) return true
+        return ContextCompat.checkSelfPermission(
+            ctx,
+            Manifest.permission.POST_NOTIFICATIONS
+        ) == PackageManager.PERMISSION_GRANTED
+    }
+
+    fun exactAlarmsActuallyEnabled(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return true
+        val alarmManager = ctx.getSystemService(AlarmManager::class.java)
+        return alarmManager?.canScheduleExactAlarms() == true
     }
 
     LaunchedEffect(Unit) {
@@ -278,6 +296,32 @@ fun ReminderScreen(
 
                         Spacer(Modifier.height(12.dp))
 
+                        val notificationsEnabled = notificationsActuallyEnabled()
+                        val exactAlarmsEnabled = exactAlarmsActuallyEnabled()
+                        val reminderAuthorized = notificationsEnabled && exactAlarmsEnabled
+
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = if (reminderAuthorized) Color(0xFFEFFCF5) else Color(0xFFFFF4F4),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
+                                Text(
+                                    text = if (reminderAuthorized) "Etat: autorise" else "Etat: non autorise",
+                                    color = if (reminderAuthorized) Color(0xFF047857) else Color(0xFFB91C1C),
+                                    fontWeight = FontWeight.ExtraBold
+                                )
+                                Spacer(Modifier.height(4.dp))
+                                Text(
+                                    text = "Notifications: ${if (notificationsEnabled) "OK" else "OFF"}  |  Alarmes exactes: ${if (exactAlarmsEnabled) "OK" else "OFF"}",
+                                    color = gray,
+                                    fontSize = 12.sp
+                                )
+                            }
+                        }
+
+                        Spacer(Modifier.height(12.dp))
+
                         OutlinedTextField(
                             value = uiState.title,
                             onValueChange = { uiState = uiState.copy(title = it) },
@@ -357,6 +401,14 @@ fun ReminderScreen(
                                     }
 
                                     ensureNotifPermissionIfNeeded()
+                                    if (!notificationsActuallyEnabled()) {
+                                        scope.launch {
+                                            snackbarHostState.showSnackbar(
+                                                "Active d'abord les notifications pour voir les rappels."
+                                            )
+                                        }
+                                        return@Button
+                                    }
                                     createReminderNotificationChannel(ctx)
 
                                     val item = reminderController.buildReminderItem(
@@ -464,6 +516,15 @@ fun ReminderScreen(
 
                             if (enabled) {
                                 ensureNotifPermissionIfNeeded()
+                                if (!notificationsActuallyEnabled()) {
+                                    reminders[index] = item.copy(enabled = false)
+                                    scope.launch {
+                                        snackbarHostState.showSnackbar(
+                                            "Notifications non autorisées. Rappel non activé."
+                                        )
+                                    }
+                                    return@ReminderRow
+                                }
                                 createReminderNotificationChannel(ctx)
 
                                 val success = reminderController.scheduleDailyReminder(

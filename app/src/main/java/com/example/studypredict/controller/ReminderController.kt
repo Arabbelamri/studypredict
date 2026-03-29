@@ -10,8 +10,10 @@ import android.os.Build
 import android.provider.Settings
 import com.example.studypredict.model.ReminderItem
 import com.example.studypredict.reminders.EXTRA_MESSAGE
+import com.example.studypredict.reminders.EXTRA_MINUTE
 import com.example.studypredict.reminders.EXTRA_REQUEST_CODE
 import com.example.studypredict.reminders.EXTRA_TITLE
+import com.example.studypredict.reminders.EXTRA_HOUR
 import com.example.studypredict.reminders.ReminderReceiver
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -27,6 +29,8 @@ class ReminderController {
             putExtra(EXTRA_TITLE, item.title)
             putExtra(EXTRA_MESSAGE, item.message)
             putExtra(EXTRA_REQUEST_CODE, item.id)
+            putExtra(EXTRA_HOUR, item.hour)
+            putExtra(EXTRA_MINUTE, item.minute)
         }
 
         val pendingIntent = PendingIntent.getBroadcast(
