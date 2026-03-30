@@ -129,6 +129,22 @@ L’app utilise :
    - Compose (material3, navigation, icônes, OSM et GPS).
    - OkHttp pour consommer les endpoints `/v1/auth/*`, `/v1/predict-success`, `/v1/notes`, `/v1/tips/me/latest`, `/v1/badges/me`.
 
+#### Tester sur un téléphone via Wi-Fi
+
+1. **Identifier l’IP locale de la machine qui héberge l’API**  
+   - Sous Windows: `ipconfig` ➜ cherchez l’“IPv4” du réseau Wi-Fi ou Ethernet.  
+   - Sous macOS/Linux: `ifconfig` ou `hostname -I`.
+2. **Adapter `CUSTOM_BACKEND_URL`** dans `app/build.gradle.kts` ou via un fichier de configuration que vous injectez à la build :
+   - Exemple pour un appareil physique connecté au même réseau Wi-Fi: `http://192.168.1.42:8080`.
+   - Si le téléphone utilise un VPN ou un sous-réseau différent, assurez-vous que la route existe et que la machine est joignable sur ce réseau (ping, `curl` depuis un autre appareil).
+3. **Ouvrir le port 8080** (ou le port utilisé) sur la machine/routeur:
+   - Désactivez temporairement les pare-feux qui bloquent `uvicorn`, ou ajoutez une règle entrante autorisant `8080`.
+   - Sur certains routeurs, activez la fonction “AP Isolation” ou créez un port-forward si vous testez en dehors du LAN.
+4. **Lancer l’API avant de démarrer l’app** (voir section [API FastAPI](#api-fastapi)).  
+   - Vérifiez que `curl http://<IP>:8080/v1/health` renvoie `{"status":"ok"}` avant de lancer l’app.
+
+> Pour revenir à un émulateur standard, replacez `CUSTOM_BACKEND_URL` par `http://10.0.2.2:8080`.
+
 ---
 
 ## Docker Compose
