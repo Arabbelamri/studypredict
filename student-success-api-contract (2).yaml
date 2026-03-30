@@ -3,7 +3,7 @@ info:
   title: Student Success Predictor API
   version: 1.0.0
   description: >
-    API avec authentification JWT (login) et prédiction ML d'un pourcentage de réussite.
+    API FastAPI avec authentification JWT, prédiction ML, conseils et gestion de notes (textes/voix).
   # Custom fields (vendor extensions) for multiple contributors
   x-team:
     - name: "Bakhouche Ribel"
@@ -206,6 +206,8 @@ paths:
                   hours_worked: 12.5
                   exercises_done: 8
                   sleep_hours_avg: 7.2
+                  extracurricular_activities: true
+                  attendance: 85.0
       responses:
         "200":
           description: Prédiction OK
@@ -219,6 +221,11 @@ paths:
                     request_id: "6c6a2d25-0a5b-4ac2-9c07-3e9a5a9d1c2f"
                     model_version: "2026-02-13.1"
                     success_percent: 78
+                    tips:
+                      - id: 1
+                        title: "Bon potentiel"
+                        description: "Continuez ainsi."
+                        category: "excellence"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -234,6 +241,197 @@ paths:
                   value:
                     code: "RATE_LIMITED"
                     message: "Trop de requêtes, réessaie plus tard."
+  /v1/predictions:
+    get:
+      tags: [Prediction]
+      summary: Historique des prédictions de l'utilisateur
+      responses:
+        "200":
+          description: Liste d'historique
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PredictionHistoryItem"
+              examples:
+                sample:
+                  value:
+                    - id: 55
+                      user_id: 1
+                      predicted_score: 78.5
+                      hours_studied: 12.5
+                      attendance: 92.0
+                      grade: "B"
+                      created_at: "2026-03-15T10:00:00Z"
+                    - id: 54
+                      user_id: 1
+                      predicted_score: 65.2
+                      hours_studied: 8.0
+                      attendance: 76.0
+                      grade: "C"
+                      created_at: "2026-03-08T10:00:00Z"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /v1/notes/me:
+    get:
+      tags: [Notes]
+      summary: Liste des notes de l'utilisateur
+      responses:
+        "200":
+          description: Notes textes et voix
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/NoteItem"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /v1/notes:
+    post:
+      tags: [Notes]
+      summary: Créer une note texte
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NoteCreateRequest"
+            examples:
+              example1:
+                value:
+                  title: "Rappels oral"
+                  content: "Préparer la partie X et revoir Y."
+      responses:
+        "201":
+          description: Note créée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NoteItem"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /v1/notes/voice:
+    post:
+      tags: [Notes]
+      summary: Créer une note vocale
+      description: Acceptes un titre, un contenu optionnel et un fichier audio multipart.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - title
+                - audio_file
+              properties:
+                title:
+                  type: string
+                content:
+                  type: string
+                audio_file:
+                  type: string
+                  format: binary
+            encoding:
+              audio_file:
+                contentType: audio/mpeg
+      responses:
+        "201":
+          description: Note vocale créée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NoteItem"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /v1/notes/{note_id}/audio:
+    get:
+      tags: [Notes]
+      summary: Télécharger le fichier audio d'une note vocale
+      parameters:
+        - name: note_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: Flux audio
+          content:
+            audio/mpeg:
+              schema:
+                type: string
+                format: binary
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: Note vocale introuvable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                notFound:
+                  value:
+                    code: "NOTE_NOT_FOUND"
+                    message: "Note introuvable."
+  /v1/notes/{note_id}:
+    delete:
+      tags: [Notes]
+      summary: Supprimer une note
+      parameters:
+        - name: note_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "204":
+          description: Note supprimée
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: Note introuvable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/tips/me/latest:
+    get:
+      tags: [Prediction]
+      summary: Conseils pour la dernière prédiction
+      responses:
+        "200":
+          description: Conseils triés par priorité
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdviceItem"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /v1/badges/me:
+    get:
+      tags: [Prediction]
+      summary: Badges débloqués par l'utilisateur
+      responses:
+        "200":
+          description: Liste des badges
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UserBadgeItem"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
 
 components:
   securitySchemes:
@@ -355,7 +553,7 @@ components:
           example: 3600
         refresh_token:
           type: string
-          description: "Token long pour renouveler l'access_token"
+        description: "Token long pour renouveler l'access_token"
 
     UserPublic:
       type: object
@@ -422,8 +620,103 @@ components:
           type: integer
           minimum: 0
           maximum: 100
-          description: "Pourcentage de réussite prédit par le modèle"
-          example: 78
+        description: "Pourcentage de réussite prédit par le modèle"
+        example: 78
+
+    PredictionHistoryItem:
+      type: object
+      additionalProperties: false
+      required: [id, user_id, predicted_score, hours_studied, attendance, created_at]
+      properties:
+        id:
+          type: integer
+        user_id:
+          type: integer
+        predicted_score:
+          type: number
+        hours_studied:
+          type: number
+        attendance:
+          type: number
+        grade:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    NoteCreateRequest:
+      type: object
+      additionalProperties: false
+      required: [title, content]
+      properties:
+        note_type:
+          type: string
+          default: "text"
+        title:
+          type: string
+          minLength: 1
+          maxLength: 120
+        content:
+          type: string
+          minLength: 1
+          maxLength: 4000
+
+    NoteItem:
+      type: object
+      additionalProperties: false
+      required: [id, note_type, title, content, created_at, updated_at]
+      properties:
+        id:
+          type: integer
+        note_type:
+          type: string
+        title:
+          type: string
+        content:
+          type: string
+        audio_url:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    AdviceItem:
+      type: object
+      additionalProperties: false
+      required: [id, title, description, category]
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+
+    UserBadgeItem:
+      type: object
+      additionalProperties: false
+      required: [id, badge_name, unlocked]
+      properties:
+        id:
+          type: integer
+        badge_name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        unlocked:
+          type: boolean
+        unlocked_at:
+          type: string
+          format: date-time
+          nullable: true
 
     Error:
       type: object
