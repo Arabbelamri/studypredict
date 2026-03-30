@@ -1,6 +1,6 @@
 # 🧠 StudyPredict
 
-Un projet complet pour prédire le succès scolaire d’un étudiant : une **app Android Jetpack Compose**, une **API FastAPI** avec authentification, conseils et notes vocales, et des **artéfacts ML** (et service heuristique) pour les prédictions.
+Un projet complet pour prédire le succès scolaire d’un étudiant : une **app Android Jetpack Compose**, une **API FastAPI** avec authentification, conseils et notes vocales, et des **artéfacts ML** pour les prédictions.
 
 ---
 
@@ -10,7 +10,6 @@ Un projet complet pour prédire le succès scolaire d’un étudiant : une **app
 3. [Installation initiale](#installation-initiale)
 4. [Services principaux](#services-principaux)
    - [API FastAPI](#api-fastapi)
-   - [Micro-service ML heuristique](#micro-service-ml-heuristique)
    - [App Android](#app-android)
 5. [Docker Compose](#docker-compose)
 6. [Points d’API essentiels](#points-dapi-essentiels)
@@ -21,10 +20,9 @@ Un projet complet pour prédire le succès scolaire d’un étudiant : une **app
 
 ## Vue d’ensemble
 
-Le dépôt regroupe trois volets :
+Le dépôt regroupe deux volets :
 - `app/` : application Android en Jetpack Compose utilisant Compose BOM, navigation, icônes FontAwesome, OpenStreetMap, GPS et OkHttp pour appeler l’API.
-- `backend/api/` : API FastAPI empaquetée avec SQLAlchemy, JWT, cryptographie, stockage SQLite (`AppliMobile.db`), upload audio et règles de conseils/badges.
-- `backend/ml_service/` : micro-service FastAPI simple (heuristique) pour tester un endpoint `/predict` ainsi qu’un `ml/` avec les artéfacts `model.pkl` et `feature_columns.pkl`.
+- `backend/api/` : API FastAPI empaquetée avec SQLAlchemy, JWT, cryptographie, stockage SQLite (`AppliMobile.db`), upload audio et règles de conseils/badges. Les artéfacts ML (`ml/model.pkl`, `ml/feature_columns.pkl`) sont consommés par ce service.
 
 Ce README décrit comment cloner le projet, installer les dépendances, lancer chaque service sans erreur et faire communiquer l’app mobile avec l’API.
 
@@ -35,8 +33,8 @@ Ce README décrit comment cloner le projet, installer les dépendances, lancer c
 - **Git** (pour cloner).
 - **Java 17+ et Android SDK** (Android Studio recommandé). Le projet utilise AGP 8.6 et Kotlin 1.9.25.
 - **Gradle Wrapper** : aucun install global requis, on utilise `./gradlew`.
-- **Python 3.11** (pour l’API et le service heuristique).
-- **pip** (installer les dépendances listées dans `backend/api/requirements.txt` et `backend/ml_service/requirements.txt`).
+- **Python 3.11** (pour l’API).
+- **pip** (installer les dépendances listées dans `backend/api/requirements.txt`).
 - **Docker + Docker Compose** (optionnel mais recommandé pour l’API).
 - **Ports libres 8080/8081** (ou adaptez les variables d’environnement).
 
@@ -98,21 +96,6 @@ L’API est maintenant disponible sur `http://localhost:8080`, avec la documenta
 - `AppliMobile.db` contient déjà des tables pré-remplies (utilisateurs, prédictions). La migration `_migrate_notes_table` se déclenche au démarrage.
 - Les notes vocales sont conservées dans `backend/api/voice_notes`. Le service vérifie que le fichier audio existe et expose `/v1/notes/{id}/audio`.
 - Les tokens de rafraîchissement sont stockés en mémoire (`store.refresh_tokens`).
-
-### Micro-service ML heuristique
-
-Ce service est jardin supplémentaire (et indépendant de `ml/model.pkl`) pour tester un endpoint `/predict`.
-
-```bash
-cd backend/ml_service
-python -m venv .venv
-.venv\Scripts\activate
-pip install --upgrade pip
-pip install -r requirements.txt
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8081
-```
-
-Envoyez une requête `POST /predict` avec le schéma `PredictRequest` (contenant `period_days`, `hours_worked`, `exercises_done`, `sleep_hours_avg`). Le service renvoie un `success_percent` dérivé d’une heuristique et un `request_id` pour débogage. Utilisez-le uniquement en test ou pour isolement.
 
 ### App Android
 
