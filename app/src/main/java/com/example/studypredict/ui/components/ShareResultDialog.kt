@@ -22,6 +22,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.example.studypredict.localization.localize
 import compose.icons.FontAwesomeIcons
 import compose.icons.fontawesomeicons.Brands
 import compose.icons.fontawesomeicons.brands.FacebookF
@@ -66,21 +67,21 @@ fun ShareResultDialog(
                         Icon(imageVector = Icons.Outlined.Share, contentDescription = null)
                         Spacer(Modifier.width(10.dp))
                         Text(
-                            text = "Partager mon résultat",
+                            text = localize("Partager mon résultat"),
                             fontWeight = FontWeight.ExtraBold,
                             fontSize = 18.sp
                         )
                     }
 
                     IconButton(onClick = onDismiss) {
-                        Icon(imageVector = Icons.Outlined.Close, contentDescription = "Fermer")
+                        Icon(imageVector = Icons.Outlined.Close, contentDescription = localize("Fermer"))
                     }
                 }
 
                 Spacer(Modifier.height(6.dp))
 
                 Text(
-                    text = "Partage tes résultats avec tes amis ou sauvegarde-les !",
+                    text = localize("Partage tes résultats avec tes amis ou sauvegarde-les !"),
                     color = Color(0xFF6B7280),
                     textAlign = TextAlign.Start
                 )
@@ -102,7 +103,7 @@ fun ShareResultDialog(
                 ) {
                     Icon(imageVector = Icons.Outlined.Share, contentDescription = null)
                     Spacer(Modifier.width(10.dp))
-                    Text("Partager", fontWeight = FontWeight.Bold)
+                    Text(localize("Partager"), fontWeight = FontWeight.Bold)
                 }
 
                 Spacer(Modifier.height(10.dp))
@@ -117,7 +118,7 @@ fun ShareResultDialog(
                 ) {
                     Icon(imageVector = Icons.Outlined.Download, contentDescription = null)
                     Spacer(Modifier.width(10.dp))
-                    Text("Sauvegarder l'image (Galerie)", fontWeight = FontWeight.SemiBold)
+                    Text(localize("Sauvegarder l'image (Galerie)"), fontWeight = FontWeight.SemiBold)
                 }
 
                 Spacer(Modifier.height(10.dp))
@@ -131,13 +132,13 @@ fun ShareResultDialog(
                 ) {
                     Icon(imageVector = Icons.Outlined.ContentCopy, contentDescription = null)
                     Spacer(Modifier.width(10.dp))
-                    Text("Sauvegarder le texte (Fichiers)", fontWeight = FontWeight.SemiBold)
+                    Text(localize("Sauvegarder le texte (Fichiers)"), fontWeight = FontWeight.SemiBold)
                 }
 
                 Spacer(Modifier.height(16.dp))
 
                 Text(
-                    text = "Selectionnez la plateforme de partage :",
+                    text = localize("Sélectionnez la plateforme de partage :"),
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF111827)
                 )
@@ -198,7 +199,7 @@ fun ShareResultDialog(
                 Spacer(Modifier.height(16.dp))
 
                 Text(
-                    text = "Copier le lien :",
+                    text = localize("Copier le lien :"),
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF111827)
                 )
@@ -221,7 +222,7 @@ fun ShareResultDialog(
                     IconButton(onClick = onCopyLink) {
                         Icon(
                             imageVector = Icons.Outlined.ContentCopy,
-                            contentDescription = "Copier"
+                            contentDescription = localize("Copier")
                         )
                     }
                 }

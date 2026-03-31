@@ -42,6 +42,7 @@ import com.example.studypredict.badges.Badge
 import com.example.studypredict.badges.BadgeCategory
 import com.example.studypredict.badges.badgesFromBackend
 import com.example.studypredict.badges.demoBadges
+import com.example.studypredict.localization.localize
 import com.example.studypredict.network.ApiResult
 import com.example.studypredict.network.BackendApi
 import kotlin.math.ceil
@@ -121,12 +122,12 @@ fun BadgesScreen(
         ) {
             item {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Outlined.ArrowBack, contentDescription = "Retour")
-                    }
-                    Text("Retour", fontWeight = FontWeight.SemiBold)
+                IconButton(onClick = onBack) {
+                    Icon(Icons.Outlined.ArrowBack, contentDescription = "Retour")
                 }
+                Text(localize("Retour"), fontWeight = FontWeight.SemiBold)
             }
+        }
 
             item {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -138,13 +139,13 @@ fun BadgesScreen(
                     )
                     Spacer(Modifier.width(10.dp))
                     Text(
-                        "Mes Badges",
+                        localize("Mes Badges"),
                         fontSize = 34.sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = Color(0xFF0B1220)
                     )
                 }
-                Text("Collectionnez tous les badges", color = Color(0xFF6B7280))
+                Text(localize("Collectionnez tous les badges"), color = Color(0xFF6B7280))
             }
 
             if (loading) {
@@ -155,15 +156,15 @@ fun BadgesScreen(
 
             loadError?.let { message ->
                 item {
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = Color(0xFFFFF1F2)
-                    ) {
-                        Text(
-                            text = message,
-                            color = Color(0xFF9F1239),
-                            modifier = Modifier.padding(12.dp)
-                        )
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = Color(0xFFFFF1F2)
+                            ) {
+                                Text(
+                                    text = localize(message),
+                                    color = Color(0xFF9F1239),
+                                    modifier = Modifier.padding(12.dp)
+                                )
                     }
                 }
             }
@@ -184,8 +185,11 @@ fun BadgesScreen(
                             verticalAlignment = Alignment.Top
                         ) {
                             Column {
-                                Text("Progression", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
-                                Text("$unlockedCount sur $total badges débloqués", color = Color(0xFF6B7280))
+                                Text(localize("Progression"), fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
+                                Text(
+                                    localize("%d sur %d badges débloqués", unlockedCount, total),
+                                    color = Color(0xFF6B7280)
+                                )
                             }
 
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -202,7 +206,7 @@ fun BadgesScreen(
                                         fontWeight = FontWeight.ExtraBold,
                                         fontSize = 28.sp
                                     )
-                                    Text("Complété", color = Color(0xFF6B7280))
+                                    Text(localize("Complété"), color = Color(0xFF6B7280))
                                 }
                             }
                         }
@@ -227,19 +231,19 @@ fun BadgesScreen(
                         ) {
                             StatMiniCard(
                                 title = unlockedCount.toString(),
-                                subtitle = "Débloqués",
+                                subtitle = localize("Débloqués"),
                                 tint = Color(0xFFF59E0B),
                                 modifier = Modifier.weight(1f)
                             )
                             StatMiniCard(
                                 title = lockedCount.toString(),
-                                subtitle = "Verrouillés",
+                                subtitle = localize("Verrouillés"),
                                 tint = Color(0xFF9CA3AF),
                                 modifier = Modifier.weight(1f)
                             )
                             StatMiniCard(
                                 title = "$percent%",
-                                subtitle = "Progrès",
+                                subtitle = localize("Progrès"),
                                 tint = Color(0xFF5B55FF),
                                 modifier = Modifier.weight(1f)
                             )
@@ -250,21 +254,20 @@ fun BadgesScreen(
 
             item {
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    items(
-                        listOf(
-                            BadgeCategory.ALL to "Tous",
-                            BadgeCategory.TRAVAIL to "Travail",
-                            BadgeCategory.PRESENCE to "Présence",
-                            BadgeCategory.EXERCICES to "Exercices",
-                            BadgeCategory.SOMMEIL to "Sommeil",
-                            BadgeCategory.CONCENTRATION to "Concentration",
-                            BadgeCategory.SUCCES to "Succès",
-                        )
-                    ) { (cat, label) ->
+                    val filters = listOf(
+                        BadgeCategory.ALL to "Tous",
+                        BadgeCategory.TRAVAIL to "Travail",
+                        BadgeCategory.PRESENCE to "Présence",
+                        BadgeCategory.EXERCICES to "Exercices",
+                        BadgeCategory.SOMMEIL to "Sommeil",
+                        BadgeCategory.CONCENTRATION to "Concentration",
+                        BadgeCategory.SUCCES to "Succès",
+                    )
+                    items(filters) { (cat, label) ->
                         FilterChip(
                             selected = (selected == cat),
                             onClick = { selected = cat },
-                            label = { Text(label, fontWeight = FontWeight.SemiBold) },
+                            label = { Text(localize(label), fontWeight = FontWeight.SemiBold) },
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = Color(0xFF5B55FF),
                                 selectedLabelColor = Color.White
@@ -281,7 +284,7 @@ fun BadgesScreen(
                 ) {
                     Column {
                         Text(
-                            "✅ Débloqués (${filteredUnlocked.size})",
+                            localize("✅ Débloqués (%d)", filteredUnlocked.size),
                             fontWeight = FontWeight.ExtraBold,
                             fontSize = 20.sp
                         )
@@ -302,7 +305,7 @@ fun BadgesScreen(
                 ) {
                     Column {
                         Text(
-                            "Verrouillés (${filteredLocked.size})",
+                            localize("Verrouillés (%d)", filteredLocked.size),
                             fontWeight = FontWeight.ExtraBold,
                             fontSize = 20.sp
                         )
@@ -471,7 +474,7 @@ private fun BadgesGrid(
                                 )
                                 Spacer(Modifier.width(8.dp))
                                 Text(
-                                    text = if (!locked) "Débloqué" else "Verrouillé",
+                                    text = if (!locked) localize("Débloqué") else localize("Verrouillé"),
                                     color = Color.White,
                                     fontWeight = FontWeight.SemiBold,
                                     fontSize = 10.sp
@@ -566,15 +569,15 @@ private fun BadgeDetailsDialog(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(Modifier.padding(14.dp)) {
-                            Text("Détails", fontWeight = FontWeight.ExtraBold, color = Color(0xFF0B1220))
+                            Text(localize("Détails"), fontWeight = FontWeight.ExtraBold, color = Color(0xFF0B1220))
                             Spacer(Modifier.height(8.dp))
-                            Text(details, color = Color(0xFF374151))
+                            Text(localize(details), color = Color(0xFF374151))
                         }
                     }
 
                     Spacer(Modifier.height(14.dp))
 
-                    val statusText = if (badge.unlocked) "Débloqué" else "Verrouillé"
+                    val statusText = if (badge.unlocked) localize("Débloqué") else localize("Verrouillé")
                     val statusColor = if (badge.unlocked) Color(0xFF10B981) else Color(0xFF9CA3AF)
 
                     Surface(
@@ -599,7 +602,7 @@ private fun BadgeDetailsDialog(
                             .height(52.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF5B55FF))
                     ) {
-                        Text("Fermer", fontWeight = FontWeight.Bold, color = Color.White)
+                        Text(localize("Fermer"), fontWeight = FontWeight.Bold, color = Color.White)
                     }
                 }
             }

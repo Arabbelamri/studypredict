@@ -42,6 +42,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
+import com.example.studypredict.localization.localize
 
 @Composable
 fun ExercisesStepScreen(
@@ -91,7 +92,7 @@ fun ExercisesStepScreen(
                         contentColor = Color.White
                     )
                 ) {
-                    Text("Suivant", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text(localize("Suivant"), fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     Spacer(Modifier.size(10.dp))
                     Text("→", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 }
@@ -113,7 +114,7 @@ fun ExercisesStepScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Étape $stepIndex sur $totalSteps",
+                    text = localize("Étape %d sur %d", stepIndex, totalSteps),
                     color = Color(0xFF111827),
                     fontWeight = FontWeight.SemiBold
                 )
@@ -158,7 +159,7 @@ fun ExercisesStepScreen(
             Spacer(Modifier.height(22.dp))
 
             Text(
-                text = "Exercices pratiques",
+                text = localize("Exercices pratiques"),
                 fontSize = 34.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = Color(0xFF0B1220)
@@ -167,7 +168,7 @@ fun ExercisesStepScreen(
             Spacer(Modifier.height(10.dp))
 
             Text(
-                text = "Combien d'exercices complétez-vous par mois ?",
+                text = localize("Combien d'exercices complétez-vous par mois ?"),
                 fontSize = 16.sp,
                 color = Color(0xFF6B7280)
             )
@@ -199,7 +200,7 @@ fun ExercisesStepScreen(
                         )
                         Spacer(Modifier.size(12.dp))
                         Text(
-                            text = "exercices",
+                            text = localize("exercices"),
                             fontSize = 28.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFFE146C2),

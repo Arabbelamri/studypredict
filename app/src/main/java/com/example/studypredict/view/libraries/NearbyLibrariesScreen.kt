@@ -68,6 +68,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.example.studypredict.libraries.LibraryPlace
 import com.example.studypredict.libraries.fetchLibrariesOverpass
+import com.example.studypredict.localization.localize
 import com.example.studypredict.ui.components.NoInternetDialog
 import com.example.studypredict.utils.NetworkUtils
 import com.google.android.gms.location.LocationServices
@@ -227,12 +228,12 @@ fun NearbyLibrariesScreen(onBack: () -> Unit) {
                 IconButton(onClick = onBack) {
                     Icon(
                         Icons.Outlined.ArrowBack,
-                        contentDescription = "Retour",
+                        contentDescription = localize("Retour"),
                         tint = dark
                     )
                 }
                 Text(
-                    "Retour",
+                    localize("Retour"),
                     color = dark,
                     fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
                 )
@@ -259,13 +260,13 @@ fun NearbyLibrariesScreen(onBack: () -> Unit) {
 
                 Column {
                     Text(
-                        text = "Bibliothèques proches",
+                        text = localize("Bibliothèques proches"),
                         fontSize = 28.sp,
                         fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold,
                         color = dark
                     )
                     Text(
-                        text = "Trouve un spot pour réviser autour de toi",
+                        text = localize("Trouve un spot pour réviser autour de toi"),
                         color = gray
                     )
                 }
@@ -290,7 +291,7 @@ fun NearbyLibrariesScreen(onBack: () -> Unit) {
                         )
                         Spacer(Modifier.width(10.dp))
                         Text(
-                            "Rayon de recherche",
+                            localize("Rayon de recherche"),
                             fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
                             color = dark
                         )
@@ -345,7 +346,7 @@ fun NearbyLibrariesScreen(onBack: () -> Unit) {
                                 contentColor = Color.White
                             )
                         ) {
-                            Text(if (loading) "..." else "Rechercher")
+                            Text(if (loading) "..." else localize("Rechercher"))
                         }
                     }
 
@@ -356,7 +357,7 @@ fun NearbyLibrariesScreen(onBack: () -> Unit) {
 
                     error?.let {
                         Spacer(Modifier.height(10.dp))
-                        Text(it, color = MaterialTheme.colorScheme.error)
+                        Text(localize(it), color = MaterialTheme.colorScheme.error)
                     }
                 }
             }
@@ -399,14 +400,14 @@ fun NearbyLibrariesScreen(onBack: () -> Unit) {
                     containerColor = Color.White,
                     contentColor = Color(0xFF111827)
                 ) {
-                    Icon(Icons.Outlined.MyLocation, contentDescription = "Recentrer")
+                    Icon(Icons.Outlined.MyLocation, contentDescription = localize("Recentrer"))
                 }
             }
 
             Spacer(Modifier.height(8.dp))
 
             Text(
-                text = "Résultats (${libs.size})",
+                text = localize("Résultats (%d)", libs.size),
                 fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold,
                 fontSize = 18.sp,
                 color = dark
@@ -422,7 +423,7 @@ fun NearbyLibrariesScreen(onBack: () -> Unit) {
                 ) {
                     Column(Modifier.padding(14.dp)) {
                         Text(
-                            "Autorise la localisation pour afficher les bibliothèques.",
+                            localize("Autorise la localisation pour afficher les bibliothèques."),
                             color = dark
                         )
                         Spacer(Modifier.height(10.dp))
@@ -436,7 +437,7 @@ fun NearbyLibrariesScreen(onBack: () -> Unit) {
                                 )
                             }
                         ) {
-                            Text("Autoriser")
+                            Text(localize("Autoriser"))
                         }
                     }
                 }
@@ -451,12 +452,12 @@ fun NearbyLibrariesScreen(onBack: () -> Unit) {
                 ) {
                     Column(Modifier.padding(14.dp)) {
                         Text(
-                            "Aucune bibliothèque chargée pour le moment.",
+                            localize("Aucune bibliothèque chargée pour le moment."),
                             fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                         )
                         Spacer(Modifier.height(6.dp))
                         Text(
-                            "Appuie sur “Rechercher” pour trouver des bibliothèques autour de toi.",
+                            localize("Appuie sur “Rechercher” pour trouver des bibliothèques autour de toi."),
                             color = gray
                         )
                     }
@@ -521,7 +522,7 @@ fun NearbyLibrariesScreen(onBack: () -> Unit) {
                                     onClick = { centerOn(lib.lat, lib.lon, 17.0) },
                                     label = {
                                         Text(
-                                            "Voir",
+                                            localize("Voir"),
                                             fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
                                         )
                                     },

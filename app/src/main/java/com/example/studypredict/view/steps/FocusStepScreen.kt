@@ -38,6 +38,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
+import com.example.studypredict.localization.localize
 
 @Composable
 fun FocusStepScreen(
@@ -90,7 +91,7 @@ fun FocusStepScreen(
                     )
                 ) {
                     Text(
-                        text = if (isSubmitting) "Chargement..." else "Voir le resultat",
+                        text = if (isSubmitting) localize("Chargement...") else localize("Voir le résultat"),
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp
                     )
@@ -115,7 +116,7 @@ fun FocusStepScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Etape $stepIndex sur $totalSteps",
+                    text = localize("Étape %d sur %d", stepIndex, totalSteps),
                     color = Color(0xFF111827),
                     fontWeight = FontWeight.SemiBold
                 )
@@ -160,7 +161,7 @@ fun FocusStepScreen(
             Spacer(Modifier.height(22.dp))
 
             Text(
-                text = "Niveau de concentration",
+                text = localize("Niveau de concentration"),
                 fontSize = 34.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = Color(0xFF0B1220)
@@ -169,7 +170,7 @@ fun FocusStepScreen(
             Spacer(Modifier.height(10.dp))
 
             Text(
-                text = "Comment evaluez-vous votre concentration ?",
+                text = localize("Comment évaluez-vous votre concentration ?"),
                 fontSize = 16.sp,
                 color = Color(0xFF6B7280)
             )

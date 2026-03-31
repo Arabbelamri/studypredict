@@ -39,6 +39,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
+import com.example.studypredict.localization.localize
 
 @Composable
 fun PhysicalActivityStepScreen(
@@ -79,7 +80,7 @@ fun PhysicalActivityStepScreen(
                     shape = RoundedCornerShape(18.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = accent, contentColor = Color.White)
                 ) {
-                    Text("Suivant", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text(localize("Suivant"), fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     Spacer(Modifier.size(10.dp))
                     Text("->", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 }
@@ -92,7 +93,7 @@ fun PhysicalActivityStepScreen(
         ) {
             Spacer(Modifier.height(14.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Etape $stepIndex sur $totalSteps", color = Color(0xFF111827), fontWeight = FontWeight.SemiBold)
+            Text(localize("Étape %d sur %d", stepIndex, totalSteps), color = Color(0xFF111827), fontWeight = FontWeight.SemiBold)
                 Text("${(percent * 100).roundToInt()}%", color = Color(0xFF4B3CFF), fontWeight = FontWeight.Bold)
             }
             Spacer(Modifier.height(10.dp))
@@ -113,9 +114,9 @@ fun PhysicalActivityStepScreen(
                 }
             }
             Spacer(Modifier.height(22.dp))
-            Text("Activite physique", fontSize = 34.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF0B1220))
+            Text(localize("Activité physique"), fontSize = 34.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF0B1220))
             Spacer(Modifier.height(10.dp))
-            Text("Heures d'activite par semaine + activites extrascolaires", fontSize = 16.sp, color = Color(0xFF6B7280))
+            Text(localize("Heures d'activité par semaine + activités extrascolaires"), fontSize = 16.sp, color = Color(0xFF6B7280))
             Spacer(Modifier.height(26.dp))
 
             val cardShape = RoundedCornerShape(22.dp)
@@ -129,12 +130,12 @@ fun PhysicalActivityStepScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    Text("${value.roundToInt()} h/semaine", fontSize = 46.sp, fontWeight = FontWeight.ExtraBold, color = accent)
+                    Text(localize("%d h/semaine", value.roundToInt()), fontSize = 46.sp, fontWeight = FontWeight.ExtraBold, color = accent)
                     Spacer(Modifier.height(10.dp))
                     Slider(value = value, onValueChange = { value = it }, valueRange = 0f..24f)
                     Spacer(Modifier.height(10.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Activites extrascolaires")
+                        Text(localize("Activités extrascolaires"))
                         Spacer(Modifier.size(12.dp))
                         Switch(checked = extracurricular, onCheckedChange = { extracurricular = it })
                     }

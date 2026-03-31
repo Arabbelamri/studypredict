@@ -38,6 +38,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
+import com.example.studypredict.localization.localize
 
 @Composable
 fun SleepStepScreen(
@@ -74,7 +75,7 @@ fun SleepStepScreen(
                 ) {
                     Text("←", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.size(10.dp))
-                    Text("Retour", fontWeight = FontWeight.SemiBold)
+                    Text(localize("Retour"), fontWeight = FontWeight.SemiBold)
                 }
 
                 Button(
@@ -88,7 +89,7 @@ fun SleepStepScreen(
                         contentColor = Color.White
                     )
                 ) {
-                    Text("Suivant", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text(localize("Suivant"), fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     Spacer(Modifier.size(10.dp))
                     Text("→", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 }
@@ -155,7 +156,7 @@ fun SleepStepScreen(
             Spacer(Modifier.height(22.dp))
 
             Text(
-                text = "Heures de sommeil",
+                text = localize("Heures de sommeil"),
                 fontSize = 34.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = Color(0xFF0B1220)
@@ -164,7 +165,7 @@ fun SleepStepScreen(
             Spacer(Modifier.height(10.dp))
 
             Text(
-                text = "Combien d'heures dormez-vous en moyenne ?",
+                text = localize("Combien d'heures dormez-vous en moyenne ?"),
                 fontSize = 16.sp,
                 color = Color(0xFF6B7280)
             )
@@ -196,7 +197,7 @@ fun SleepStepScreen(
                         )
                         Spacer(Modifier.width(10.dp))
                         Text(
-                            text = "h/nuit",
+                            text = localize("h/nuit"),
                             fontSize = 28.sp,
                             fontWeight = FontWeight.Bold,
                             color = purple,
@@ -218,8 +219,8 @@ fun SleepStepScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("${minH.roundToInt()}h/nuit", color = Color(0xFF6B7280))
-                        Text("${maxH.roundToInt()}h/nuit", color = Color(0xFF6B7280))
+                        Text(localize("%dh/nuit", minH.roundToInt()), color = Color(0xFF6B7280))
+                        Text(localize("%dh/nuit", maxH.roundToInt()), color = Color(0xFF6B7280))
                     }
                 }
             }

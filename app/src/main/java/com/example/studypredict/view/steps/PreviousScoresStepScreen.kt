@@ -37,6 +37,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
+import com.example.studypredict.localization.localize
 
 @Composable
 fun PreviousScoresStepScreen(
@@ -76,7 +77,7 @@ fun PreviousScoresStepScreen(
                     shape = RoundedCornerShape(18.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = accent, contentColor = Color.White)
                 ) {
-                    Text("Suivant", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text(localize("Suivant"), fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     Spacer(Modifier.size(10.dp))
                     Text("->", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 }
@@ -89,7 +90,7 @@ fun PreviousScoresStepScreen(
         ) {
             Spacer(Modifier.height(14.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Etape $stepIndex sur $totalSteps", color = Color(0xFF111827), fontWeight = FontWeight.SemiBold)
+                Text(localize("Étape %d sur %d", stepIndex, totalSteps), color = Color(0xFF111827), fontWeight = FontWeight.SemiBold)
                 Text("${(percent * 100).roundToInt()}%", color = Color(0xFF4B3CFF), fontWeight = FontWeight.Bold)
             }
             Spacer(Modifier.height(10.dp))
@@ -110,9 +111,9 @@ fun PreviousScoresStepScreen(
                 }
             }
             Spacer(Modifier.height(22.dp))
-            Text("Score precedent", fontSize = 34.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF0B1220))
+            Text(localize("Score précédent"), fontSize = 34.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF0B1220))
             Spacer(Modifier.height(10.dp))
-            Text("Quelle est votre moyenne precedente ?", fontSize = 16.sp, color = Color(0xFF6B7280))
+            Text(localize("Quelle est votre moyenne précédente ?"), fontSize = 16.sp, color = Color(0xFF6B7280))
             Spacer(Modifier.height(26.dp))
 
             val cardShape = RoundedCornerShape(22.dp)

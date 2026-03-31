@@ -37,6 +37,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.studypredict.localization.localize
 import kotlin.math.roundToInt
 
 @Composable
@@ -86,7 +87,7 @@ fun AttendanceStepScreen(
                         contentColor = Color.White
                     )
                 ) {
-                    Text("Suivant", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text(localize("Suivant"), fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     Spacer(Modifier.size(10.dp))
                     Text("→", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 }
@@ -108,7 +109,7 @@ fun AttendanceStepScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Étape $stepIndex sur $totalSteps",
+                    text = localize("Étape %d sur %d", stepIndex, totalSteps),
                     color = Color(0xFF111827),
                     fontWeight = FontWeight.SemiBold
                 )
@@ -153,7 +154,7 @@ fun AttendanceStepScreen(
             Spacer(Modifier.height(22.dp))
 
             Text(
-                text = "Présence aux cours",
+                text = localize("Présence aux cours"),
                 fontSize = 34.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = Color(0xFF0B1220)
@@ -162,7 +163,7 @@ fun AttendanceStepScreen(
             Spacer(Modifier.height(10.dp))
 
             Text(
-                text = "Quel est votre taux de présence ?",
+                text = localize("Quel est votre taux de présence ?"),
                 fontSize = 16.sp,
                 color = Color(0xFF6B7280)
             )

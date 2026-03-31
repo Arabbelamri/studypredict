@@ -31,6 +31,8 @@ import com.example.studypredict.navigation.Routes
 import com.example.studypredict.network.ApiResult
 import com.example.studypredict.network.BackendApi
 import com.example.studypredict.network.SessionStore
+import com.example.studypredict.localization.AppLocaleProvider
+import com.example.studypredict.localization.localize
 import com.example.studypredict.ui.theme.TrainingTheme
 import com.example.studypredict.view.auth.AuthScreen
 import com.example.studypredict.view.badges.BadgesScreen
@@ -59,7 +61,9 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             TrainingTheme {
-                AppNav()
+                AppLocaleProvider {
+                    AppNav()
+                }
             }
         }
     }
@@ -231,9 +235,9 @@ fun AppNav() {
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
-                        Text("Vous devez vous connecter.")
+                        Text(localize("Vous devez vous connecter."))
                         Button(onClick = { openLogin() }) {
-                            Text("Aller au login")
+                            Text(localize("Aller au login"))
                         }
                     }
                 }
@@ -421,9 +425,9 @@ fun AppNav() {
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
-                        Text("Aucun resultat disponible.")
+                        Text(localize("Aucun resultat disponible."))
                         Button(onClick = { navController.popBackStack() }) {
-                            Text("Retour")
+                            Text(localize("Retour"))
                         }
                     }
                 }

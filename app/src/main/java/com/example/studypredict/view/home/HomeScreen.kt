@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -30,6 +31,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,6 +47,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.studypredict.localization.AppLocale
+import com.example.studypredict.localization.LocalAppLocaleState
+import com.example.studypredict.localization.localize
 import com.example.studypredict.ui.theme.TrainingTheme
 
 @Composable
@@ -77,6 +82,8 @@ fun StudyPredictHomeScreen(
         listOf(Color(0xFF4B3CFF), Color(0xFFB400FF))
     )
 
+    val localeState = LocalAppLocaleState.current
+
     Scaffold(containerColor = screenBg) { innerPadding ->
         Column(
             modifier = Modifier
@@ -92,6 +99,19 @@ fun StudyPredictHomeScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End
             ) {
+                TextButton(
+                    onClick = {
+                        val next = if (localeState.locale == AppLocale.French) {
+                            AppLocale.English
+                        } else {
+                            AppLocale.French
+                        }
+                        localeState.onLocaleChange(next)
+                    }
+                ) {
+                    Text(localeState.locale.label)
+                }
+                Spacer(Modifier.width(4.dp))
                 Surface(
                     shape = CircleShape,
                     color = Color.White,
@@ -101,7 +121,7 @@ fun StudyPredictHomeScreen(
                     IconButton(onClick = { if (isLoggedIn) onProfile() else onLogin() }) {
                         Icon(
                             imageVector = Icons.Outlined.Person,
-                            contentDescription = "Profil",
+                            contentDescription = localize("Profil"),
                             tint = Color(0xFF4B3CFF)
                         )
                     }
@@ -129,7 +149,7 @@ fun StudyPredictHomeScreen(
             Spacer(Modifier.height(18.dp))
 
             GradientText(
-                text = "StudyPredict",
+                text = localize("StudyPredict"),
                 brush = titleGrad,
                 fontSize = 44.sp,
                 fontWeight = FontWeight.ExtraBold
@@ -138,7 +158,7 @@ fun StudyPredictHomeScreen(
             Spacer(Modifier.height(10.dp))
 
             Text(
-                text = "Decouvrez votre potentiel academique",
+                text = localize("Decouvrez votre potentiel academique"),
                 color = Color(0xFF6B7280),
                 fontSize = 16.sp,
                 textAlign = TextAlign.Center
@@ -154,7 +174,7 @@ fun StudyPredictHomeScreen(
                     modifier = Modifier.weight(1f),
                     icon = Icons.Outlined.LocationOn,
                     iconTint = Color(0xFF5B55FF),
-                    title = "Reviser\npres de moi",
+                    title = localize("Reviser\npres de moi"),
                     background = cardBg,
                     onClick = { runOrAskAuth(onPrediction) }
                 )
@@ -162,7 +182,7 @@ fun StudyPredictHomeScreen(
                     modifier = Modifier.weight(1f),
                     icon = Icons.Outlined.EmojiEvents,
                     iconTint = Color(0xFFF59E0B),
-                    title = "Badges",
+                    title = localize("Badges"),
                     background = cardBg,
                     onClick = { runOrAskAuth(onBadges) }
                 )
@@ -170,7 +190,7 @@ fun StudyPredictHomeScreen(
                     modifier = Modifier.weight(1f),
                     icon = Icons.Outlined.AutoAwesome,
                     iconTint = Color(0xFF8B5CF6),
-                    title = "Conseils",
+                    title = localize("Conseils"),
                     background = cardBg,
                     onClick = { runOrAskAuth(onTips) }
                 )
@@ -186,7 +206,7 @@ fun StudyPredictHomeScreen(
                     modifier = Modifier.weight(1f),
                     icon = Icons.Outlined.NotificationsActive,
                     iconTint = Color(0xFF3B82F6),
-                    title = "Rappels",
+                    title = localize("Rappels"),
                     background = cardBg,
                     onClick = { runOrAskAuth(onReminders) }
                 )
@@ -194,7 +214,7 @@ fun StudyPredictHomeScreen(
                     modifier = Modifier.weight(1f),
                     icon = Icons.Outlined.Mic,
                     iconTint = Color(0xFF10B981),
-                    title = "Notes",
+                    title = localize("Notes"),
                     background = cardBg,
                     onClick = { runOrAskAuth(onNotes) }
                 )
@@ -202,7 +222,7 @@ fun StudyPredictHomeScreen(
                     modifier = Modifier.weight(1f),
                     icon = Icons.Outlined.History,
                     iconTint = Color(0xFF6B7280),
-                    title = "Historique",
+                    title = localize("Historique"),
                     background = cardBg,
                     onClick = { runOrAskAuth(onHistory) }
                 )
@@ -211,7 +231,7 @@ fun StudyPredictHomeScreen(
             Spacer(Modifier.height(26.dp))
 
             GradientButton(
-                text = "Commencer l'analyse",
+                text = localize("Commencer l'analyse"),
                 brush = primaryGrad,
                 onClick = { runOrAskAuth(onStartAnalysis) },
                 modifier = Modifier
@@ -222,7 +242,7 @@ fun StudyPredictHomeScreen(
             Spacer(Modifier.height(18.dp))
 
             Text(
-                text = "Analyse basee sur 5 criteres essentiels",
+                text = localize("Analyse basee sur 5 criteres essentiels"),
                 color = Color(0xFF8A93A3),
                 fontSize = 13.sp,
                 textAlign = TextAlign.Center

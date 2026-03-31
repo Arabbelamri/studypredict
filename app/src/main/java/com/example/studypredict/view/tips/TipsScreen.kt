@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.studypredict.localization.localize
 import com.example.studypredict.network.ApiResult
 import com.example.studypredict.network.BackendApi
 import com.example.studypredict.network.RemoteTip
@@ -85,21 +86,21 @@ fun TipsScreen(
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.Outlined.ArrowBack, contentDescription = "Retour")
+                    Icon(Icons.Outlined.ArrowBack, contentDescription = localize("Retour"))
                 }
-                Text("Retour", fontWeight = FontWeight.SemiBold)
+                Text(localize("Retour"), fontWeight = FontWeight.SemiBold)
             }
 
             Spacer(Modifier.height(8.dp))
-            Text("Conseils", fontSize = 32.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF0B1220))
-            Text("Basés sur votre dernière prédiction", color = Color(0xFF6B7280))
+            Text(localize("Conseils"), fontSize = 32.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF0B1220))
+            Text(localize("Basés sur votre dernière prédiction"), color = Color(0xFF6B7280))
             Spacer(Modifier.height(14.dp))
 
             when {
                 loading -> CircularProgressIndicator()
                 tips.isEmpty() -> {
                     Text(
-                        text = error ?: "Aucun conseil pour le moment. Lancez une prédiction d'abord.",
+                        text = error ?: localize("Aucun conseil pour le moment. Lancez une prédiction d'abord."),
                         color = Color(0xFF374151)
                     )
                 }
@@ -131,7 +132,7 @@ private fun TipRow(tip: RemoteTip) {
             Spacer(Modifier.height(6.dp))
             Text(tip.description, color = Color(0xFF374151))
             Spacer(Modifier.height(8.dp))
-            Text("Catégorie: ${tip.category}", color = Color(0xFF6B7280), fontSize = 12.sp)
+            Text(localize("Catégorie : %s", tip.category), color = Color(0xFF6B7280), fontSize = 12.sp)
         }
     }
 }

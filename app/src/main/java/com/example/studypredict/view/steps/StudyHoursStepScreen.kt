@@ -36,6 +36,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
+import com.example.studypredict.localization.localize
 
 @Composable
 fun StudyHoursStepScreen(
@@ -70,7 +71,7 @@ fun StudyHoursStepScreen(
                         contentColor = Color.White
                     )
                 ) {
-                    Text("Suivant", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text(localize("Suivant"), fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     Spacer(Modifier.height(0.dp))
                     Text("  →", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 }
@@ -92,7 +93,7 @@ fun StudyHoursStepScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Étape $stepIndex sur $totalSteps",
+                    text = localize("Étape %d sur %d", stepIndex, totalSteps),
                     color = Color(0xFF111827)
                 )
                 Text(
@@ -135,7 +136,7 @@ fun StudyHoursStepScreen(
             Spacer(Modifier.height(22.dp))
 
             Text(
-                text = "Heures de travail",
+                text = localize("Heures de travail"),
                 fontSize = 34.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = Color(0xFF0B1220)
@@ -144,7 +145,7 @@ fun StudyHoursStepScreen(
             Spacer(Modifier.height(10.dp))
 
             Text(
-                text = "Combien d'heures étudiez-vous par semaine ?",
+                text = localize("Combien d'heures étudiez-vous par semaine ?"),
                 fontSize = 16.sp,
                 color = Color(0xFF6B7280)
             )
@@ -176,7 +177,7 @@ fun StudyHoursStepScreen(
                         )
                         Spacer(Modifier.width(10.dp))
                         Text(
-                            text = "h/sem",
+                            text = localize("h/sem"),
                             fontSize = 28.sp,
                             fontWeight = FontWeight.Bold,
                             color = primary
@@ -193,13 +194,13 @@ fun StudyHoursStepScreen(
 
                     Spacer(Modifier.height(8.dp))
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text("0h/sem", color = Color(0xFF6B7280))
-                        Text("60h/sem", color = Color(0xFF6B7280))
-                    }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(localize("%dh/sem", 0), color = Color(0xFF6B7280))
+                            Text(localize("%dh/sem", maxHours.roundToInt()), color = Color(0xFF6B7280))
+                        }
                 }
             }
 

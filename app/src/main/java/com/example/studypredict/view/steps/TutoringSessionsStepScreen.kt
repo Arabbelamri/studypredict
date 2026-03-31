@@ -37,6 +37,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
+import com.example.studypredict.localization.localize
 
 @Composable
 fun TutoringSessionsStepScreen(
@@ -76,7 +77,7 @@ fun TutoringSessionsStepScreen(
                     shape = RoundedCornerShape(18.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = accent, contentColor = Color.White)
                 ) {
-                    Text("Suivant", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text(localize("Suivant"), fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     Spacer(Modifier.size(10.dp))
                     Text("->", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 }
@@ -89,7 +90,7 @@ fun TutoringSessionsStepScreen(
         ) {
             Spacer(Modifier.height(14.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Etape $stepIndex sur $totalSteps", color = Color(0xFF111827), fontWeight = FontWeight.SemiBold)
+                Text(localize("Étape %d sur %d", stepIndex, totalSteps), color = Color(0xFF111827), fontWeight = FontWeight.SemiBold)
                 Text("${(percent * 100).roundToInt()}%", color = Color(0xFF4B3CFF), fontWeight = FontWeight.Bold)
             }
             Spacer(Modifier.height(10.dp))
@@ -110,9 +111,9 @@ fun TutoringSessionsStepScreen(
                 }
             }
             Spacer(Modifier.height(22.dp))
-            Text("Tutorat", fontSize = 34.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF0B1220))
+            Text(localize("Tutorat"), fontSize = 34.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF0B1220))
             Spacer(Modifier.height(10.dp))
-            Text("Combien de seances de tutorat sur la periode ?", fontSize = 16.sp, color = Color(0xFF6B7280))
+            Text(localize("Combien de séances de tutorat sur la période ?"), fontSize = 16.sp, color = Color(0xFF6B7280))
             Spacer(Modifier.height(26.dp))
 
             val cardShape = RoundedCornerShape(22.dp)
@@ -126,7 +127,7 @@ fun TutoringSessionsStepScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    Text("${value.roundToInt()} seances", fontSize = 48.sp, fontWeight = FontWeight.ExtraBold, color = accent)
+                    Text(localize("%d séances", value.roundToInt()), fontSize = 48.sp, fontWeight = FontWeight.ExtraBold, color = accent)
                     Spacer(Modifier.height(16.dp))
                     Slider(value = value, onValueChange = { value = it }, valueRange = 0f..60f)
                 }

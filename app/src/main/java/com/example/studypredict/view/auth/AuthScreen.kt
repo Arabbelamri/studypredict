@@ -32,6 +32,9 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.studypredict.localization.LocalAppLocaleState
+import com.example.studypredict.localization.localize
+import com.example.studypredict.localization.translate
 
 @Composable
 fun AuthScreen(
@@ -52,23 +55,24 @@ fun AuthScreen(
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
+    val localeState = LocalAppLocaleState.current
 
     fun validateAndContinue() {
         val cleanEmail = email.trim()
         if (!isLoginMode && fullName.trim().isEmpty()) {
-            error = "Le nom est obligatoire."
+            error = localeState.locale.translate("Le nom est obligatoire.")
             return
         }
         if (cleanEmail.isEmpty() || !cleanEmail.contains("@")) {
-            error = "Entrez un email valide."
+            error = localeState.locale.translate("Entrez un email valide.")
             return
         }
         if (password.length < 6) {
-            error = "Le mot de passe doit contenir au moins 6 caracteres."
+            error = localeState.locale.translate("Le mot de passe doit contenir au moins 6 caracteres.")
             return
         }
         if (!isLoginMode && password != confirmPassword) {
-            error = "Les mots de passe ne correspondent pas."
+            error = localeState.locale.translate("Les mots de passe ne correspondent pas.")
             return
         }
         error = null
@@ -107,13 +111,13 @@ fun AuthScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
-                    text = "StudyPredict",
+                    text = localize("StudyPredict"),
                     fontSize = 30.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = Color(0xFF2E2B5F)
                 )
                 Text(
-                    text = if (isLoginMode) "Connexion" else "Creer un compte",
+                    text = if (isLoginMode) localize("Connexion") else localize("Creer un compte"),
                     style = MaterialTheme.typography.titleMedium,
                     color = Color(0xFF55506E)
                 )
@@ -130,7 +134,7 @@ fun AuthScreen(
                     OutlinedTextField(
                         value = fullName,
                         onValueChange = { fullName = it },
-                        label = { Text("Nom complet") },
+                        label = { Text(localize("Nom complet")) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -139,7 +143,7 @@ fun AuthScreen(
                 OutlinedTextField(
                     value = email,
                     onValueChange = { email = it },
-                    label = { Text("Email") },
+                        label = { Text(localize("Email")) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -147,7 +151,7 @@ fun AuthScreen(
                 OutlinedTextField(
                     value = password,
                     onValueChange = { password = it },
-                    label = { Text("Mot de passe") },
+                        label = { Text(localize("Mot de passe")) },
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
                     modifier = Modifier.fillMaxWidth()
@@ -157,7 +161,7 @@ fun AuthScreen(
                     OutlinedTextField(
                         value = confirmPassword,
                         onValueChange = { confirmPassword = it },
-                        label = { Text("Confirmer le mot de passe") },
+                        label = { Text(localize("Confirmer le mot de passe")) },
                         singleLine = true,
                         visualTransformation = PasswordVisualTransformation(),
                         modifier = Modifier.fillMaxWidth()
@@ -190,7 +194,7 @@ fun AuthScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = if (isSubmitting) "Chargement..." else if (isLoginMode) "Se connecter" else "S'inscrire",
+                            text = if (isSubmitting) localize("Chargement...") else if (isLoginMode) localize("Se connecter") else localize("S'inscrire"),
                             color = Color.White,
                             fontWeight = FontWeight.Bold
                         )
@@ -198,7 +202,7 @@ fun AuthScreen(
                 }
 
                 Text(
-                    text = if (isLoginMode) "Pas de compte ? Creez-en un." else "Deja inscrit ? Connectez-vous.",
+                    text = if (isLoginMode) localize("Pas de compte ? Creez-en un.") else localize("Deja inscrit ? Connectez-vous."),
                     color = Color(0xFF6B7280),
                     style = MaterialTheme.typography.bodySmall,
                     textAlign = TextAlign.Center,
@@ -214,7 +218,7 @@ fun AuthScreen(
                         contentColor = Color(0xFF2D3142)
                     )
                 ) {
-                    Text("Retour")
+                    Text(localize("Retour"))
                 }
             }
         }
@@ -240,7 +244,7 @@ private fun AuthModeRow(
                 contentColor = if (isLoginMode) Color.White else Color(0xFF2D3142)
             )
         ) {
-            Text("Login")
+            Text(localize("Login"))
         }
         Button(
             onClick = onSignup,
@@ -251,7 +255,7 @@ private fun AuthModeRow(
                 contentColor = if (!isLoginMode) Color.White else Color(0xFF2D3142)
             )
         ) {
-            Text("Signup")
+            Text(localize("Signup"))
         }
     }
 }

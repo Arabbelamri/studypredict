@@ -29,6 +29,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.studypredict.localization.localize
 
 @Composable
 fun ProfileScreen(
@@ -70,10 +71,10 @@ fun ProfileScreen(
             color = Color.White
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("Nom", color = Color(0xFF6B7280), fontSize = 13.sp)
+                Text(localize("Nom"), color = Color(0xFF6B7280), fontSize = 13.sp)
                 Text(displayName, color = Color(0xFF111827), fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
                 Spacer(Modifier.height(14.dp))
-                Text("Email", color = Color(0xFF6B7280), fontSize = 13.sp)
+                Text(localize("Email"), color = Color(0xFF6B7280), fontSize = 13.sp)
                 Text(email, color = Color(0xFF111827), fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
             }
         }
@@ -88,7 +89,7 @@ fun ProfileScreen(
                 contentColor = Color.White
             )
         ) {
-            Text("Se deconnecter")
+            Text(localize("Se deconnecter"))
         }
 
         Spacer(Modifier.height(12.dp))
@@ -97,7 +98,7 @@ fun ProfileScreen(
             onClick = onBack,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Retour")
+            Text(localize("Retour"))
         }
     }
 }

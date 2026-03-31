@@ -1,6 +1,7 @@
 package com.example.studypredict.network
 
 import android.content.Context
+import com.example.studypredict.localization.AppLocale
 
 object SessionStore {
     private const val PREF_NAME = "studypredict_session"
@@ -8,6 +9,7 @@ object SessionStore {
     private const val KEY_REFRESH_TOKEN = "refresh_token"
     private const val KEY_EMAIL = "email"
     private const val KEY_DISPLAY_NAME = "display_name"
+    private const val KEY_LOCALE = "locale"
 
     fun saveSession(
         context: Context,
@@ -52,6 +54,20 @@ object SessionStore {
             .remove(KEY_REFRESH_TOKEN)
             .remove(KEY_EMAIL)
             .remove(KEY_DISPLAY_NAME)
+            .remove(KEY_LOCALE)
             .apply()
+    }
+
+    fun saveLocale(context: Context, locale: AppLocale) {
+        context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+            .edit()
+            .putString(KEY_LOCALE, locale.code)
+            .apply()
+    }
+
+    fun getLocale(context: Context): AppLocale {
+        val stored = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+            .getString(KEY_LOCALE, null)
+        return AppLocale.fromCode(stored)
     }
 }

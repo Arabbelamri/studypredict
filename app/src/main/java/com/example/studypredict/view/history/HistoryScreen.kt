@@ -45,6 +45,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.studypredict.localization.LocalAppLocaleState
+import com.example.studypredict.localization.localize
+import com.example.studypredict.localization.translate
 import com.example.studypredict.network.ApiResult
 import com.example.studypredict.network.BackendApi
 import java.time.OffsetDateTime
@@ -77,6 +80,7 @@ fun HistoryScreen(
     val bg = Color(0xFFF2F6FF)
     val dark = Color(0xFF0B1220)
     val gray = Color(0xFF6B7280)
+    val localeState = LocalAppLocaleState.current
 
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -85,7 +89,7 @@ fun HistoryScreen(
     LaunchedEffect(token) {
         if (token.isNullOrBlank()) {
             loading = false
-            error = "Connectez-vous pour voir votre historique."
+            error = localeState.locale.translate("Connectez-vous pour voir votre historique.")
             records = emptyList()
             return@LaunchedEffect
         }
@@ -124,7 +128,7 @@ fun HistoryScreen(
             bg = bg,
             onBack = onBack,
             onStartAnalysis = onStartAnalysis,
-            message = error ?: "Aucun historique pour le moment.",
+            message = error ?: localeState.locale.translate("Aucun historique pour le moment."),
         )
         return
     }
@@ -145,9 +149,9 @@ fun HistoryScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.Outlined.ArrowBack, contentDescription = "Retour")
+                    Icon(Icons.Outlined.ArrowBack, contentDescription = localize("Retour"))
                 }
-                Text("Retour", fontWeight = FontWeight.SemiBold)
+                Text(localize("Retour"), fontWeight = FontWeight.SemiBold)
             }
 
             if (loading) {
@@ -171,14 +175,14 @@ fun HistoryScreen(
                             )
                             Spacer(Modifier.size(10.dp))
                             Text(
-                                "Historique",
+                                localize("Historique"),
                                 fontSize = 34.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = dark,
                             )
                         }
 
-                        Text("Suivez votre evolution dans le temps", color = gray)
+                        Text(localize("Suivez votre evolution dans le temps"), color = gray)
                         Spacer(Modifier.height(12.dp))
 
                         if (summary != null) {
@@ -194,7 +198,7 @@ fun HistoryScreen(
 
                     item {
                         Text(
-                            "Analyses precedentes (${records.size})",
+                            localize("Analyses precedentes (%d)", records.size),
                             fontWeight = FontWeight.Bold,
                             fontSize = 20.sp,
                             color = dark,
@@ -237,13 +241,13 @@ private fun SummaryGrid(summary: HistorySummary) {
         ) {
             SummaryCard(
                 modifier = Modifier.weight(1f),
-                title = "Dernier",
+                title = localize("Dernier"),
                 value = "${summary.lastScore}%",
                 valueColor = Color(0xFF4F46E5),
             )
             SummaryCard(
                 modifier = Modifier.weight(1f),
-                title = "Moyenne",
+                title = localize("Moyenne"),
                 value = "${summary.averageScore}%",
                 valueColor = Color(0xFF2563EB),
             )
@@ -254,13 +258,13 @@ private fun SummaryGrid(summary: HistorySummary) {
         ) {
             SummaryCard(
                 modifier = Modifier.weight(1f),
-                title = "Record",
+                title = localize("Record"),
                 value = "${summary.bestScore}%",
                 valueColor = Color(0xFFD97706),
             )
             SummaryCard(
                 modifier = Modifier.weight(1f),
-                title = "Evolution",
+                title = localize("Evolution"),
                 value = "${if (summary.evolution > 0) "+" else ""}${summary.evolution}%",
                 valueColor = if (summary.evolution < 0) Color(0xFFDC2626) else Color(0xFF16A34A),
             )
@@ -308,7 +312,7 @@ private fun ScoreChartCard(points: List<Int>) {
                 )
                 Spacer(Modifier.size(6.dp))
                 Text(
-                    "Evolution des scores",
+                    localize("Evolution des scores"),
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF1F2937),
                 )
@@ -319,7 +323,7 @@ private fun ScoreChartCard(points: List<Int>) {
             val chartPoints = if (points.size <= 12) points else points.take(12)
 
             if (chartPoints.size < 2) {
-                Text("Pas assez de donnees pour la courbe.", color = Color(0xFF6B7280))
+                Text(localize("Pas assez de donnees pour la courbe."), color = Color(0xFF6B7280))
             } else {
                 Canvas(
                     modifier = Modifier
@@ -397,9 +401,9 @@ private fun HistoryEmpty(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.Outlined.ArrowBack, contentDescription = "Retour")
+                    Icon(Icons.Outlined.ArrowBack, contentDescription = localize("Retour"))
                 }
-                Text("Retour", fontWeight = FontWeight.SemiBold)
+                Text(localize("Retour"), fontWeight = FontWeight.SemiBold)
             }
 
             Column(
@@ -414,7 +418,7 @@ private fun HistoryEmpty(
                 )
                 Spacer(Modifier.height(14.dp))
                 Text(
-                    "Aucun historique",
+                    localize("Aucun historique"),
                     fontSize = 30.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = dark,
@@ -427,7 +431,7 @@ private fun HistoryEmpty(
                 )
                 Spacer(Modifier.height(18.dp))
                 Button(onClick = onStartAnalysis) {
-                    Text("Commencer une analyse")
+                    Text(localize("Commencer une analyse"))
                 }
             }
         }
@@ -478,7 +482,11 @@ private fun HistoryRow(record: HistoryUiItem) {
                 }
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "${formatHours(record.hoursWorked)}h travail  •  ${record.attendancePercent}% presence",
+                    localize(
+                        "%sh travail • %s%% presence",
+                        formatHours(record.hoursWorked),
+                        record.attendancePercent
+                    ),
                     color = Color(0xFF4B5563),
                     fontSize = 14.sp,
                 )
@@ -486,7 +494,6 @@ private fun HistoryRow(record: HistoryUiItem) {
         }
     }
 }
-
 @Composable
 private fun GradeChip(grade: String) {
     val bg =
