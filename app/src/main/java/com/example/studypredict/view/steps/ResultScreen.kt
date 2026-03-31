@@ -54,6 +54,9 @@ import androidx.compose.ui.unit.sp
 import androidx.core.view.drawToBitmap
 import com.example.studypredict.controller.ResultController
 import com.example.studypredict.history.HistoryStore
+import com.example.studypredict.localization.LocalAppLocale
+import com.example.studypredict.localization.formatLocalized
+import com.example.studypredict.localization.translate
 import com.example.studypredict.model.AnalysisResult
 import com.example.studypredict.ui.components.ShareResultDialog
 import com.example.studypredict.utils.saveBitmapToGallery
@@ -108,6 +111,7 @@ fun ResultScreen(
     val scope = rememberCoroutineScope()
 
     val context = LocalContext.current
+    val appLocale = LocalAppLocale.current
     val view = LocalView.current
 
     val exportText = remember(result) { controller.buildExportText(result) }
@@ -391,13 +395,13 @@ fun ResultScreen(
                 onShare = {
                     val target = selectedShareTarget
                     if (target == null) {
-                        Toast.makeText(context, "Choisis WhatsApp ou Email d'abord", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, appLocale.translate("Choisis WhatsApp ou Email d'abord"), Toast.LENGTH_SHORT).show()
                         return@ShareResultDialog
                     }
 
                     when (target) {
                         "WhatsApp" -> controller.shareToWhatsApp(context, exportText)
-                        "Email" -> controller.shareToEmail(context, "Mes résultats StudyPredict", exportText)
+                        "Email" -> controller.shareToEmail(context, appLocale.translate("Mes résultats StudyPredict"), exportText)
                     }
 
                     onShare()
@@ -418,11 +422,11 @@ fun ResultScreen(
                             )
                             Toast.makeText(
                                 context,
-                                if (uri != null) "Image enregistrée ✅" else "Échec de l'enregistrement",
+                                if (uri != null) appLocale.translate("Image enregistrée ✅") else appLocale.translate("Échec de l'enregistrement"),
                                 Toast.LENGTH_SHORT
                             ).show()
                         } catch (e: Exception) {
-                            Toast.makeText(context, "Erreur: ${e.message}", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, appLocale.formatLocalized("Erreur: %s", e.message), Toast.LENGTH_SHORT).show()
                         }
                     }
                 },
@@ -435,7 +439,7 @@ fun ResultScreen(
                     )
                     Toast.makeText(
                         context,
-                        if (uri != null) "Texte enregistré ✅" else "Échec de l'enregistrement",
+                        if (uri != null) appLocale.translate("Texte enregistré ✅") else appLocale.translate("Échec de l'enregistrement"),
                         Toast.LENGTH_SHORT
                     ).show()
                 },

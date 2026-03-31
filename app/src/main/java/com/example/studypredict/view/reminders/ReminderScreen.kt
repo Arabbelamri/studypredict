@@ -70,6 +70,9 @@ import androidx.core.content.ContextCompat
 import androidx.core.app.NotificationManagerCompat
 import com.example.studypredict.controller.ReminderController
 import com.example.studypredict.controller.ReminderDataProvider
+import com.example.studypredict.localization.LocalAppLocale
+import com.example.studypredict.localization.formatLocalized
+import com.example.studypredict.localization.translate
 import com.example.studypredict.model.ReminderItem
 import com.example.studypredict.model.ReminderUiState
 import com.example.studypredict.reminders.createReminderNotificationChannel
@@ -80,6 +83,7 @@ fun ReminderScreen(
     onBack: () -> Unit
 ) {
     val ctx = LocalContext.current
+    val appLocale = LocalAppLocale.current
     val reminderController = remember { ReminderController() }
 
     val bg = Color(0xFFF2F6FF)
@@ -117,7 +121,7 @@ fun ReminderScreen(
     ) { granted ->
         scope.launch {
             snackbarHostState.showSnackbar(
-                if (granted) "Notifications activées ✅" else "Permission refusée."
+                if (granted) appLocale.translate("Notifications activées ✅") else appLocale.translate("Permission refusée.")
             )
         }
     }
@@ -395,7 +399,7 @@ fun ReminderScreen(
                                 onClick = {
                                     if (uiState.title.isBlank()) {
                                         scope.launch {
-                                            snackbarHostState.showSnackbar("Ajoute un titre.")
+                                snackbarHostState.showSnackbar(appLocale.translate("Ajoute un titre."))
                                         }
                                         return@Button
                                     }
@@ -403,9 +407,9 @@ fun ReminderScreen(
                                     ensureNotifPermissionIfNeeded()
                                     if (!notificationsActuallyEnabled()) {
                                         scope.launch {
-                                            snackbarHostState.showSnackbar(
-                                                "Active d'abord les notifications pour voir les rappels."
-                                            )
+                                        snackbarHostState.showSnackbar(
+                                            appLocale.translate("Active d'abord les notifications pour voir les rappels.")
+                                        )
                                         }
                                         return@Button
                                     }
@@ -424,9 +428,12 @@ fun ReminderScreen(
                                         reminders.add(0, item)
 
                                         scope.launch {
-                                            snackbarHostState.showSnackbar(
-                                                "Rappel programmé à ${reminderController.formatTime(item.hour, item.minute)} ✅"
+                                        snackbarHostState.showSnackbar(
+                                            appLocale.formatLocalized(
+                                                "Rappel programmé à %s ✅",
+                                                reminderController.formatTime(item.hour, item.minute)
                                             )
+                                        )
                                         }
 
                                         uiState = ReminderUiState()
@@ -434,9 +441,9 @@ fun ReminderScreen(
                                         reminderController.requestExactAlarmPermission(ctx)
 
                                         scope.launch {
-                                            snackbarHostState.showSnackbar(
-                                                "Autorise les alarmes exactes pour activer ce rappel."
-                                            )
+                                        snackbarHostState.showSnackbar(
+                                            appLocale.translate("Autorise les alarmes exactes pour activer ce rappel.")
+                                        )
                                         }
                                     }
                                 },
@@ -519,9 +526,9 @@ fun ReminderScreen(
                                 if (!notificationsActuallyEnabled()) {
                                     reminders[index] = item.copy(enabled = false)
                                     scope.launch {
-                                        snackbarHostState.showSnackbar(
-                                            "Notifications non autorisées. Rappel non activé."
-                                        )
+                                    snackbarHostState.showSnackbar(
+                                        appLocale.translate("Notifications non autorisées. Rappel non activé.")
+                                    )
                                     }
                                     return@ReminderRow
                                 }
@@ -533,8 +540,9 @@ fun ReminderScreen(
                                 )
 
                                 scope.launch {
-                                    snackbarHostState.showSnackbar(if (success) "Rappel réactivé ✅"
-                                    else "Autorise les alarmes exactes."
+                                    snackbarHostState.showSnackbar(
+                                        if (success) appLocale.translate("Rappel réactivé ✅")
+                                        else appLocale.translate("Autorise les alarmes exactes.")
                                     )
                                 }
 
@@ -544,7 +552,7 @@ fun ReminderScreen(
                             } else {
                                 reminderController.cancelReminder(ctx, item.id)
                                 scope.launch {
-                                    snackbarHostState.showSnackbar("Rappel désactivé")
+                                snackbarHostState.showSnackbar(appLocale.translate("Rappel désactivé"))
                                 }
                             }
                         },
@@ -553,7 +561,7 @@ fun ReminderScreen(
                             reminders.removeAll { it.id == item.id }
 
                             scope.launch {
-                                snackbarHostState.showSnackbar("Rappel supprimé")
+                                snackbarHostState.showSnackbar(appLocale.translate("Rappel supprimé"))
                             }
                         },
                         formattedTime = reminderController.formatTime(item.hour, item.minute)

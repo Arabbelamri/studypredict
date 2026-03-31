@@ -60,6 +60,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import com.example.studypredict.localization.LocalAppLocale
+import com.example.studypredict.localization.translate
 import com.example.studypredict.model.NoteItem
 import com.example.studypredict.network.ApiResult
 import com.example.studypredict.network.BackendApi
@@ -80,6 +82,7 @@ fun NotesScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val appLocale = LocalAppLocale.current
     val recordingsDir = remember { File(context.cacheDir, "voice_memos").apply { mkdirs() } }
     val recorder = remember { MediaRecorder() }
     val localPlayer = remember { MediaPlayer() }
@@ -144,7 +147,7 @@ fun NotesScreen(
             isRecording = true
             tempRecordingFile = targetFile
         } catch (_: Exception) {
-            scope.launch { snackbarHostState.showSnackbar("Impossible de démarrer l'enregistrement.") }
+            scope.launch { snackbarHostState.showSnackbar(appLocale.translate("Impossible de démarrer l'enregistrement.")) }
         }
     }
 
@@ -186,7 +189,7 @@ fun NotesScreen(
             localPlayer.prepareAsync()
         } catch (_: Exception) {
             isLocalPreparing = false
-            scope.launch { snackbarHostState.showSnackbar("Impossible de lire l'enregistrement.") }
+            scope.launch { snackbarHostState.showSnackbar(appLocale.translate("Impossible de lire l'enregistrement.")) }
         }
     }
 
@@ -296,11 +299,11 @@ fun NotesScreen(
                 Button(
                     onClick = {
                         if (token.isNullOrBlank()) {
-                            scope.launch { snackbarHostState.showSnackbar("Connectez-vous pour enregistrer une note.") }
+                            scope.launch { snackbarHostState.showSnackbar(appLocale.translate("Connectez-vous pour enregistrer une note.")) }
                             return@Button
                         }
                         if (title.isBlank() || textContent.isBlank()) {
-                            scope.launch { snackbarHostState.showSnackbar("Titre et contenu obligatoires.") }
+                            scope.launch { snackbarHostState.showSnackbar(appLocale.translate("Titre et contenu obligatoires.")) }
                             return@Button
                         }
                         scope.launch {
@@ -309,7 +312,7 @@ fun NotesScreen(
                                     title = ""
                                     textContent = ""
                                     loadNotes()
-                                    snackbarHostState.showSnackbar("Note enregistrée")
+                                    snackbarHostState.showSnackbar(appLocale.translate("Note enregistrée"))
                                 }
 
                                 is ApiResult.Failure -> {
@@ -361,17 +364,18 @@ fun NotesScreen(
                 }
 
                 Spacer(Modifier.height(6.dp))
+                val currentRecordedFile = recordedFile
                 Text(
                     text = when {
                         isRecording -> "Enregistrement en cours..."
-                        recordedFile != null -> "Enregistrement prêt : ${recordedFile?.name}"
+                        currentRecordedFile != null -> "Enregistrement prêt : ${currentRecordedFile.name}"
                         else -> "Appuyez sur 'Enregistrer un mémo vocal' pour démarrer."
                     },
                     fontSize = 12.sp,
                     color = Color(0xFF4B5563)
                 )
 
-                if (recordedFile != null) {
+                if (currentRecordedFile != null) {
                     Spacer(Modifier.height(6.dp))
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         IconButton(onClick = ::toggleLocalPlayback) {
@@ -395,16 +399,16 @@ fun NotesScreen(
                 Button(
                     onClick = {
                         if (token.isNullOrBlank()) {
-                            scope.launch { snackbarHostState.showSnackbar("Connectez-vous pour ajouter un mémo vocal.") }
+                            scope.launch { snackbarHostState.showSnackbar(appLocale.translate("Connectez-vous pour ajouter un mémo vocal.")) }
                             return@Button
                         }
                         if (title.isBlank()) {
-                            scope.launch { snackbarHostState.showSnackbar("Un titre est requis pour le mémo vocal.") }
+                            scope.launch { snackbarHostState.showSnackbar(appLocale.translate("Un titre est requis pour le mémo vocal.")) }
                             return@Button
                         }
                         val file = recordedFile
                         if (file == null) {
-                            scope.launch { snackbarHostState.showSnackbar("Enregistrement requis pour le mémo vocal.") }
+                            scope.launch { snackbarHostState.showSnackbar(appLocale.translate("Enregistrement requis pour le mémo vocal.")) }
                             return@Button
                         }
                         scope.launch {
@@ -423,7 +427,7 @@ fun NotesScreen(
                                         isLocalPlaying = false
                                         file.delete()
                                         loadNotes()
-                                        snackbarHostState.showSnackbar("Mémo vocal enregistré")
+                                        snackbarHostState.showSnackbar(appLocale.translate("Mémo vocal enregistré"))
                                     }
 
                                     is ApiResult.Failure -> {
@@ -431,7 +435,7 @@ fun NotesScreen(
                                     }
                                 }
                             } catch (_: Exception) {
-                                snackbarHostState.showSnackbar("Impossible d'ajouter le mémo vocal.")
+                                snackbarHostState.showSnackbar(appLocale.translate("Impossible d'ajouter le mémo vocal."))
                             } finally {
                                 isUploadingVoice = false
                             }
